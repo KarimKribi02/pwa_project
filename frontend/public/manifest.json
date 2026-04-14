@@ -1,0 +1,21 @@
+{
+  "name": "Menuiserie Digitale",
+  "short_name": "Menuiserie",
+  "description": "Showcase digital pour menuisier à Marrakech - Portes, Tables, Cuisines.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFBF0",
+  "theme_color": "#5D4037",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
