@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 "# pwa_project" 
 =======
 <p align="center">
@@ -100,3 +101,9 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
 >>>>>>> master
+=======
+
+# PWA Project
+
+Application web progressive pour la réservation facile.
+>>>>>>> 4909ed8 (update API and README)
