@@ -3,19 +3,41 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Lock, Mail, ArrowRight } from 'lucide-react';
+import { Lock, Mail, ArrowRight, Loader2 } from 'lucide-react';
+import { getUserByEmail } from '@/services/api';
 import Link from 'next/link';
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Static logic for demonstration
-    if (email && password) {
-      router.push('/admin/dashboard');
+    setError('');
+    setLoading(true);
+
+    try {
+      const user = await getUserByEmail(email);
+      
+      if (user.mot_passe === password) {
+        if (user.role === 'admin') {
+          // Set basic session in localStorage for this demo
+          localStorage.setItem('admin_user', JSON.stringify(user));
+          router.push('/admin/dashboard');
+        } else {
+          setError("Accès refusé. Vous n'avez pas les droits d'administration.");
+        }
+      } else {
+        setError("Mot de passe incorrect.");
+      }
+    } catch (err) {
+      console.error("Login error:", err);
+      setError("Utilisateur introuvable.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -35,6 +57,11 @@ export default function AdminLogin() {
         </div>
 
         <form onSubmit={handleLogin} className="p-10 space-y-8">
+          {error && (
+            <div className="bg-red-50 text-red-600 p-4 rounded-xl text-xs font-bold border border-red-100 animate-shake">
+              {error}
+            </div>
+          )}
           <div className="space-y-6">
             <div className="relative">
               <label className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em] mb-2 block">Identifiant</label>
@@ -69,10 +96,17 @@ export default function AdminLogin() {
 
           <button 
             type="submit"
-            className="w-full bg-primary hover:bg-primary/90 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-3 transition-all transform active:scale-95 shadow-lg shadow-primary/20"
+            disabled={loading}
+            className="w-full bg-primary hover:bg-primary/90 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-3 transition-all transform active:scale-95 shadow-lg shadow-primary/20 disabled:opacity-50"
           >
-            Accéder au Dashboard
-            <ArrowRight size={18} />
+            {loading ? (
+              <Loader2 className="animate-spin" size={20} />
+            ) : (
+              <>
+                Accéder au Dashboard
+                <ArrowRight size={18} />
+              </>
+            )}
           </button>
 
           <div className="text-center">

@@ -16,34 +16,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-
-const PRODUCTS_DATA = [
-  { 
-    id: 1, title: "Table Basse 'Atlas'", basePrice: 1250, category: "Mobilier", 
-    description: "Une pièce maîtresse taillée dans le chêne le plus noble. Chaque plateau est unique, conservant les bords naturels du tronc pour une esthétique organique.",
-    images: [
-      "https://images.unsplash.com/photo-1554295405-abb8fd54f153?q=80&w=800&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1594620302200-9a762244a156?q=80&w=800&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1622345426189-99464670081d?q=80&w=800&auto=format&fit=crop"
-    ]
-  },
-  { 
-    id: 2, title: "Fauteuil 'Signature'", basePrice: 2800, category: "Mobilier", 
-    description: "Noyer noir sculpté & Finition huile naturelle. Un confort absolu allié à une structure sculpturale.",
-    images: [
-      "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?q=80&w=800&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1592078615290-033ee584e267?q=80&w=800&auto=format&fit=crop"
-    ]
-  },
-  { 
-    id: 3, title: "Table de Repas 'Horizon'", basePrice: 4500, category: "Mobilier", 
-    description: "Plateau live-edge en Cèdre de l'Atlas. Le luxe de la nature brute dans votre salle à manger.",
-    images: [
-      "https://images.unsplash.com/photo-1577140917170-285929fb55b7?q=80&w=800&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1577174881658-0f30ed549adc?q=80&w=800&auto=format&fit=crop"
-    ]
-  }
-];
+import { getProduct } from '@/services/api';
 
 const WOOD_TYPES = [
   { id: 'chene', name: 'Chêne Blond', factor: 1.2 },
@@ -62,37 +35,80 @@ export default function ProductDetail() {
   const params = useParams();
   const router = useRouter();
   
-  // Find product by ID or use first one as fallback
-  const product = PRODUCTS_DATA.find(p => p.id === Number(params.id)) || PRODUCTS_DATA[0];
-  
+  const [product, setProduct] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeImg, setActiveImg] = useState(0);
   const [width, setWidth] = useState(180);
   const [length, setLength] = useState(90);
   const [wood, setWood] = useState(WOOD_TYPES[0]);
   const [finish, setFinish] = useState(FINISHES[0]);
-  const [estimatedPrice, setEstimatedPrice] = useState(product.basePrice);
+  const [estimatedPrice, setEstimatedPrice] = useState(0);
+
+  useEffect(() => {
+    async function fetchProduct() {
+      if (!params.id) return;
+      try {
+        const data = await getProduct(params.id as string);
+        setProduct(data);
+        setEstimatedPrice(Number(data.prix) || 0);
+      } catch (err) {
+        console.error("Failed to fetch product:", err);
+        setError("Produit introuvable");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchProduct();
+  }, [params.id]);
 
   // Price Logic Simulation
   useEffect(() => {
+    if (!product) return;
+    const basePrice = Number(product.prix) || 0;
     const area = (width * length) / 10000; // m2
-    const newPrice = product.basePrice + (area * 300 * wood.factor);
+    const newPrice = basePrice + (area * 300 * wood.factor);
     setEstimatedPrice(Math.round(newPrice));
   }, [width, length, wood, product]);
 
   const handleAddToCart = () => {
     const orderData = {
-      product: product.title,
+      product_id: product.id,
+      product_name: product.nom,
       price: estimatedPrice,
       customization: {
         dimensions: `${width}x${length} cm`,
+        width,
+        length,
         wood: wood.name,
         finish: finish.name
       },
-      image: product.images[0]
+      image: product.produits_images?.[0]?.url_image || "/product_door.png"
     };
     localStorage.setItem('pendingOrder', JSON.stringify(orderData));
     router.push('/checkout');
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-surface pt-32 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (error || !product) {
+    return (
+      <div className="min-h-screen bg-surface pt-32 text-center">
+        <h1 className="text-2xl font-serif text-primary mb-4">{error || "Produit non trouvé"}</h1>
+        <Link href="/catalog" className="text-secondary font-bold uppercase tracking-widest">Retour au catalogue</Link>
+      </div>
+    );
+  }
+
+  const images = product.produits_images?.length > 0 
+    ? product.produits_images.map((img: any) => img.url_image) 
+    : ["/product_door.png"];
 
   return (
     <div className="min-h-screen bg-surface pt-32 pb-24 px-4 md:px-8">
@@ -102,7 +118,7 @@ export default function ProductDetail() {
           <ChevronRight size={12} />
           <Link href="/catalog" className="hover:text-primary transition-colors">Atelier</Link>
           <ChevronRight size={12} />
-          <span className="text-primary">{product.title}</span>
+          <span className="text-primary">{product.nom}</span>
         </nav>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
@@ -115,7 +131,7 @@ export default function ProductDetail() {
               <AnimatePresence mode="wait">
                 <motion.img 
                   key={activeImg}
-                  src={product.images[activeImg]} 
+                  src={images[activeImg]} 
                   initial={{ opacity: 0, scale: 1.1 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 1.05 }}
@@ -126,7 +142,7 @@ export default function ProductDetail() {
             </motion.div>
             
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {product.images.map((img, i) => (
+              {images.map((img, i) => (
                 <button 
                   key={i}
                   onClick={() => setActiveImg(i)}
@@ -147,7 +163,7 @@ export default function ProductDetail() {
                 <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest ml-2">Pillage Artisanal Certifié</span>
               </div>
               <h1 className="text-4xl md:text-5xl font-serif text-primary italic mb-6">
-                {product.title}
+                {product.nom}
               </h1>
               <p className="text-stone-500 font-light leading-relaxed mb-8">
                 {product.description}

@@ -11,7 +11,8 @@ export class ProduitController{
   public async getAllProduits(){
     const produits = await this.prisma.produits.findMany({
       include: {
-        categories: true
+        categories: true,
+        produits_images: true
       },
       orderBy: { created_at: 'desc' }
     });
@@ -22,7 +23,12 @@ export class ProduitController{
       categories: produit.categories ? {
         ...produit.categories,
         id: produit.categories.id.toString()
-      } : null
+      } : null,
+      produits_images: produit.produits_images?.map(img => ({
+        ...img,
+        id: img.id.toString(),
+        produit_id: img.produit_id?.toString()
+      }))
     }));
   }
 
@@ -59,7 +65,8 @@ export class ProduitController{
     const produits = await this.prisma.produits.findMany({
       where: { categorie_id: BigInt(categorieId) },
       include: {
-        categories: true
+        categories: true,
+        produits_images: true
       },
       orderBy: { created_at: 'desc' }
     });
@@ -70,7 +77,12 @@ export class ProduitController{
       categories: produit.categories ? {
         ...produit.categories,
         id: produit.categories.id.toString()
-      } : null
+      } : null,
+      produits_images: produit.produits_images?.map(img => ({
+        ...img,
+        id: img.id.toString(),
+        produit_id: img.produit_id?.toString()
+      }))
     }));
   }
 
@@ -80,7 +92,8 @@ export class ProduitController{
     const produits = await this.prisma.produits.findMany({
       where: { vedette: true },
       include: {
-        categories: true
+        categories: true,
+        produits_images: true
       },
       orderBy: { created_at: 'desc' }
     });
@@ -91,7 +104,12 @@ export class ProduitController{
       categories: produit.categories ? {
         ...produit.categories,
         id: produit.categories.id.toString()
-      } : null
+      } : null,
+      produits_images: produit.produits_images?.map(img => ({
+        ...img,
+        id: img.id.toString(),
+        produit_id: img.produit_id?.toString()
+      }))
     }));
   }
 

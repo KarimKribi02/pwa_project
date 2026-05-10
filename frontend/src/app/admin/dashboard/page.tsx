@@ -10,15 +10,40 @@ import {
   ArrowDownRight 
 } from 'lucide-react';
 
-export default function DashboardPage() {
-  const stats = [
-    { label: 'Total Produits', value: '124', icon: <Package />, change: '+12%', isPositive: true },
-    { label: 'Commandes', value: '45', icon: <ShoppingCart />, change: '+5%', isPositive: true },
-    { label: 'Chiffre d\'Affaires', value: '12.4K €', icon: <TrendingUp />, change: '+18%', isPositive: true },
-    { label: 'En attente', value: '8', icon: <Clock />, change: '-2%', isPositive: false },
-  ];
+import { useState, useEffect } from 'react';
+import { getProducts, getAllOrders } from '@/services/api';
 
-  const salesData = [40, 70, 45, 90, 65, 80, 50]; // Sample heights for bars
+export default function DashboardPage() {
+  const [stats, setStats] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const [products, orders] = await Promise.all([
+          getProducts(),
+          getAllOrders()
+        ]);
+
+        const totalRevenue = orders.reduce((sum: number, order: any) => sum + (Number(order.prix_total) || 0), 0);
+        const pendingOrders = orders.filter((o: any) => o.statut?.toLowerCase() === 'en attente').length;
+
+        setStats([
+          { label: 'Total Produits', value: products.length.toString(), icon: <Package />, change: '+12%', isPositive: true },
+          { label: 'Commandes', value: orders.length.toString(), icon: <ShoppingCart />, change: '+5%', isPositive: true },
+          { label: 'Chiffre d\'Affaires', value: `${(totalRevenue / 1000).toFixed(1)}K MAD`, icon: <TrendingUp />, change: '+18%', isPositive: true },
+          { label: 'En attente', value: pendingOrders.toString(), icon: <Clock />, change: '-2%', isPositive: false },
+        ]);
+      } catch (error) {
+        console.error("Failed to fetch dashboard stats:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchStats();
+  }, []);
+
+  const salesData = [40, 70, 45, 90, 65, 80, 50]; // Still sample heights for bars for visualization
 
   return (
     <div className="space-y-12">

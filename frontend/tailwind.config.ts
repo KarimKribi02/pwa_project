@@ -9,7 +9,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Artisan Palette
+        // Artisan Palette  
         'cream': '#fcf9f3',
         'charcoal': '#1c1c18',
         'forest': '#396632',   // Primary Button

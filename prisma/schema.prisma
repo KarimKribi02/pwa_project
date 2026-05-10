@@ -5,7 +5,6 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
 model articles_commandes {
@@ -65,7 +64,7 @@ model produits {
   id                 BigInt               @id @default(autoincrement())
   categorie_id       BigInt?
   nom                String               @db.VarChar(255)
-  slug               String?              @db.VarChar(255)
+  slug               String?              @unique @db.VarChar(255)
   description        String?
   prix               Decimal?             @db.Decimal(10, 2)
   vedette            Boolean?             @default(false)

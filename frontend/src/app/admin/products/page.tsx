@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Package, 
@@ -12,16 +12,95 @@ import {
   Image as ImageIcon,
   Ruler
 } from 'lucide-react';
+import { getProducts, getCategories, addProduct, deleteProduct, updateProduct, addImage } from '@/services/api';
+import { useRef } from 'react';
 
 export default function ProductsPage() {
+  const [products, setProducts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [newProduct, setNewProduct] = useState({
+    nom: '',
+    categorie_id: '',
+    prix: '',
+    description: '',
+    vedette: false
+  });
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [products, setProducts] = useState([
-    { id: 1, name: 'Porte Atlas en Cèdre', category: 'Portes', dimensions: '210x90cm', price: '1250', image: 'https://images.unsplash.com/photo-1513584684374-8bdb74838a0f?q=80&w=200&auto=format&fit=crop' },
-    { id: 2, name: 'Table Basse Majorelle', category: 'Tables', dimensions: '120x60cm', price: '450', image: 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?q=80&w=200&auto=format&fit=crop' },
-    { id: 3, name: 'Cuisine Signature Bois de Rose', category: 'Cuisines', dimensions: 'Sur mesure', price: '4500', image: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?q=80&w=200&auto=format&fit=crop' },
-  ]);
+  const fetchProducts = async () => {
+    try {
+      const [productsData, categoriesData] = await Promise.all([
+        getProducts(),
+        getCategories()
+      ]);
+      setProducts(productsData);
+      setCategories(categoriesData);
+    } catch (err) {
+      console.error("Failed to fetch products:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setImagePreview(base64String);
+        setSelectedImage(base64String);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAddProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const createdProduct = await addProduct({
+        ...newProduct,
+        categorie_id: Number(newProduct.categorie_id),
+        prix: Number(newProduct.prix)
+      });
+
+      if (selectedImage && createdProduct.id) {
+        await addImage({
+          produit_id: createdProduct.id,
+          url_image: selectedImage,
+          principale: true
+        });
+      }
+
+      setShowAddForm(false);
+      setNewProduct({ nom: '', categorie_id: '', prix: '', description: '', vedette: false });
+      setSelectedImage(null);
+      setImagePreview(null);
+      fetchProducts();
+    } catch (err) {
+      console.error("Failed to add product:", err);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm("Voulez-vous vraiment supprimer ce produit ?")) {
+      try {
+        await deleteProduct(id);
+        fetchProducts();
+      } catch (err) {
+        console.error("Failed to delete product:", err);
+      }
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -78,38 +157,52 @@ export default function ProductsPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-primary/5">
-            {products.map((product) => (
-              <tr key={product.id} className="hover:bg-surface-low/50 transition-colors">
-                <td className="px-8 py-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden border border-primary/5">
-                      <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
-                    </div>
-                    <div>
-                      <p className="text-primary font-bold text-sm leading-tight">{product.name}</p>
-                      <p className="text-[10px] font-medium text-gray-400 mt-1">ID: #00{product.id}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-8 py-4">
-                  <span className="px-3 py-1 bg-surface-highest rounded-full text-[10px] font-bold text-primary uppercase tracking-widest border border-primary/5">
-                    {product.category}
-                  </span>
-                </td>
-                <td className="px-8 py-4 text-sm font-medium text-stone-600">{product.dimensions}</td>
-                <td className="px-8 py-4 text-sm font-black text-primary">{product.price} €</td>
-                <td className="px-8 py-4">
-                  <div className="flex items-center gap-2">
-                    <button className="p-2 text-gray-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-all">
-                      <Edit3 size={18} />
-                    </button>
-                    <button className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {loading ? (
+              <tr><td colSpan={5} className="text-center py-10">Chargement...</td></tr>
+            ) : products.length === 0 ? (
+              <tr><td colSpan={5} className="text-center py-10">Aucun produit trouvé</td></tr>
+            ) : (
+              products.map((product) => {
+                const mainImage = product.produits_images?.find((img: any) => img.principale)?.url_image 
+                                 || product.produits_images?.[0]?.url_image 
+                                 || "/product_door.png";
+                return (
+                  <tr key={product.id} className="hover:bg-surface-low/50 transition-colors">
+                    <td className="px-8 py-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden border border-primary/5">
+                          <img src={mainImage} alt={product.nom} className="w-full h-full object-cover" />
+                        </div>
+                        <div>
+                          <p className="text-primary font-bold text-sm leading-tight">{product.nom}</p>
+                          <p className="text-[10px] font-medium text-gray-400 mt-1">ID: #{product.id}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-8 py-4">
+                      <span className="px-3 py-1 bg-surface-highest rounded-full text-[10px] font-bold text-primary uppercase tracking-widest border border-primary/5">
+                        {product.categories?.nom || 'Artisanat'}
+                      </span>
+                    </td>
+                    <td className="px-8 py-4 text-sm font-medium text-stone-600">Standard / Sur mesure</td>
+                    <td className="px-8 py-4 text-sm font-black text-primary">{product.prix} MAD</td>
+                    <td className="px-8 py-4">
+                      <div className="flex items-center gap-2">
+                        <button className="p-2 text-gray-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-all">
+                          <Edit3 size={18} />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(product.id)}
+                          className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>
@@ -141,25 +234,59 @@ export default function ProductsPage() {
                 </button>
               </div>
 
-              <form className="p-10 space-y-8 overflow-y-auto">
-                {/* Visual Image Placeholder */}
-                <div className="h-48 rounded-3xl border-2 border-dashed border-primary/20 bg-white flex flex-col items-center justify-center gap-2 text-primary/40 group cursor-pointer hover:border-primary/40 transition-all">
-                  <ImageIcon size={40} className="group-hover:scale-110 transition-transform" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest">Uploader une image du produit</span>
+              <form onSubmit={handleAddProduct} className="p-10 space-y-8 overflow-y-auto">
+                {/* Functional Image Upload */}
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="h-48 rounded-3xl border-2 border-dashed border-primary/20 bg-white flex flex-col items-center justify-center gap-2 text-primary/40 group cursor-pointer hover:border-primary/40 transition-all overflow-hidden relative"
+                >
+                  {imagePreview ? (
+                    <>
+                      <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <span className="bg-white/90 text-primary px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-lg">Changer l'image</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <ImageIcon size={40} className="group-hover:scale-110 transition-transform" />
+                      <span className="text-[10px] font-bold uppercase tracking-widest">Uploader une image du produit</span>
+                    </>
+                  )}
                 </div>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  className="hidden" 
+                  accept="image/*" 
+                  onChange={handleImageChange}
+                />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-4">
                     <div>
                       <label className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-2 block ml-1">NOM DU PRODUIT</label>
-                      <input type="text" className="w-full bg-white border border-primary/10 px-6 py-4 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 font-medium" placeholder="Ex: Porte Nomade..." />
+                      <input 
+                        type="text" 
+                        required
+                        className="w-full bg-white border border-primary/10 px-6 py-4 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 font-medium" 
+                        placeholder="Ex: Porte Nomade..." 
+                        value={newProduct.nom}
+                        onChange={(e) => setNewProduct({ ...newProduct, nom: e.target.value })}
+                      />
                     </div>
                     <div>
                       <label className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-2 block ml-1">CATÉGORIE</label>
-                      <select className="w-full bg-white border border-primary/10 px-6 py-4 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 font-bold">
-                        <option>Portes</option>
-                        <option>Tables</option>
-                        <option>Cuisines</option>
+                      <select 
+                        required
+                        className="w-full bg-white border border-primary/10 px-6 py-4 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 font-bold"
+                        value={newProduct.categorie_id}
+                        onChange={(e) => setNewProduct({ ...newProduct, categorie_id: e.target.value })}
+                      >
+                        <option value="">Sélectionner...</option>
+                        {categories.map(cat => (
+                          <option key={cat.id} value={cat.id}>{cat.nom}</option>
+                        ))}
                       </select>
                     </div>
                   </div>
@@ -167,25 +294,45 @@ export default function ProductsPage() {
                   <div className="space-y-4">
                     <div>
                       <label className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-2 block ml-1 flex items-center gap-1">
-                        <Ruler size={10} /> DIMENSIONS (LxH)
+                        <Ruler size={10} /> VEDETTE ?
                       </label>
-                      <input type="text" className="w-full bg-white border border-primary/10 px-6 py-4 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 font-medium" placeholder="Ex: 210x90cm" />
+                      <div className="flex items-center gap-4 py-4">
+                        <input 
+                          type="checkbox" 
+                          className="w-6 h-6 accent-primary"
+                          checked={newProduct.vedette}
+                          onChange={(e) => setNewProduct({ ...newProduct, vedette: e.target.checked })}
+                        />
+                        <span className="text-sm font-medium">Mettre en avant ce produit</span>
+                      </div>
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-2 block ml-1">PRIX (€)</label>
-                      <input type="number" className="w-full bg-white border border-primary/10 px-6 py-4 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 font-black" placeholder="990.00" />
+                      <label className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-2 block ml-1">PRIX (MAD)</label>
+                      <input 
+                        type="number" 
+                        required
+                        className="w-full bg-white border border-primary/10 px-6 py-4 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 font-black" 
+                        placeholder="990.00" 
+                        value={newProduct.prix}
+                        onChange={(e) => setNewProduct({ ...newProduct, prix: e.target.value })}
+                      />
                     </div>
                   </div>
                 </div>
 
                 <div>
                   <label className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-2 block ml-1">DESCRIPTION</label>
-                  <textarea className="w-full bg-white border border-primary/10 px-6 py-4 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 min-h-[120px] font-medium resize-none" placeholder="Décrivez l'origine du bois, le style de sculpture..."></textarea>
+                  <textarea 
+                    className="w-full bg-white border border-primary/10 px-6 py-4 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 min-h-[120px] font-medium resize-none" 
+                    placeholder="Décrivez l'origine du bois, le style de sculpture..."
+                    value={newProduct.description}
+                    onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+                  ></textarea>
                 </div>
 
                 <div className="pt-4 flex gap-4">
                   <button type="button" onClick={() => setShowAddForm(false)} className="flex-1 py-4 text-stone-400 font-bold uppercase tracking-widest text-[10px]">Annuler</button>
-                  <button type="button" className="flex-[2] bg-primary text-white py-4 rounded-2xl font-bold shadow-xl shadow-primary/20 hover:brightness-110 transition-all">
+                  <button type="submit" className="flex-[2] bg-primary text-white py-4 rounded-2xl font-bold shadow-xl shadow-primary/20 hover:brightness-110 transition-all">
                     Enregistrer le Produit
                   </button>
                 </div>

@@ -112,7 +112,7 @@ export default function DynamicProductDetail({ params }: { params: { id: string 
             </Link>
             <h1 className="text-[3.5rem] md:text-[5rem] font-serif leading-[1.1] text-on-surface mb-8 italic">{product.name}</h1>
             <p className="text-xl text-on-surface/40 leading-loose italic max-w-lg mb-12">"{product.description}"</p>
-            
+                  
             <div className="flex items-baseline gap-6">
               <div className="flex flex-col">
                 <span className="font-work text-[8px] uppercase tracking-[0.4em] text-secondary font-black mb-1">Prix Estimatif</span>

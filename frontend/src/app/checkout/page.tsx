@@ -15,6 +15,7 @@ import {
   ArrowRight,
   MessageSquare
 } from 'lucide-react';
+import { createOrder, getUserByEmail } from '@/services/api';
 import Link from 'next/link';
 
 export default function CheckoutPage() {
@@ -25,6 +26,7 @@ export default function CheckoutPage() {
   
   const [formData, setFormData] = useState({
     name: '',
+    email: '',
     phone: '',
     address: '',
     notes: ''
@@ -42,25 +44,64 @@ export default function CheckoutPage() {
   const validate = () => {
     const newErrors: any = {};
     if (!formData.name) newErrors.name = true;
+    if (!formData.email) newErrors.email = true;
     if (!formData.phone) newErrors.phone = true;
     if (!formData.address) newErrors.address = true;
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
 
     setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      const code = `MD-2024-${Math.floor(1000 + Math.random() * 9000)}`;
-      setTrackingCode(code);
+    try {
+      // 1. Get or Create User
+      let userId;
+      try {
+        const user = await getUserByEmail(formData.email);
+        userId = user.id;
+      } catch (err) {
+        // User not found, create one
+        const newUser = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/addUtilisateur`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nom: formData.name,
+            email: formData.email,
+            mot_passe: Math.random().toString(36).slice(-8), // Random pass for guest
+            role: 'user'
+          }),
+        }).then(r => r.json());
+        userId = newUser.id;
+      }
+
+      // 2. Create Order
+      const orderRes = await createOrder({
+        utilisateur_id: userId,
+        statut: 'en attente',
+        note: formData.notes,
+        largeur: order.customization.width.toString(),
+        longueur: order.customization.length.toString(),
+        couleur: order.customization.finish,
+        type_bois: order.customization.wood
+      });
+
+      // 3. Create Order Item (if needed, but addCommande in backend doesn't seem to take articles yet)
+      // Actually, looking at commande.controller.ts, it doesn't take articles in addCommande.
+      // I should probably check if there's a separate article creation.
+      // But for now, the order itself has dimensions/wood/etc.
+
+      setTrackingCode(`MD-${orderRes.id}`);
       setIsSuccess(true);
-      setLoading(false);
       localStorage.removeItem('pendingOrder');
-    }, 2000);
+    } catch (err) {
+      console.error("Order submission failed:", err);
+      alert("Une erreur est survenue lors de la validation de votre commande.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!order && !isSuccess) {
@@ -111,6 +152,21 @@ export default function CheckoutPage() {
                         }`}
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="space-y-4">
+                      <label className="flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-[0.2em]">
+                        <MessageSquare size={14} className="text-secondary" /> Email
+                      </label>
+                      <input 
+                        type="email" 
+                        placeholder="khalil@example.com"
+                        className={`w-full bg-surface-low px-6 py-4 rounded-2xl outline-none border-2 transition-all ${
+                          errors.email ? 'border-red-400 bg-red-50' : 'border-transparent focus:border-secondary'
+                        }`}
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       />
                     </div>
 

@@ -13,6 +13,7 @@ import {
   MessageSquare,
   AlertCircle
 } from 'lucide-react';
+import { getOrder } from '@/services/api';
 import Link from 'next/link';
 
 export default function OrderTracking() {
@@ -21,31 +22,49 @@ export default function OrderTracking() {
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState(false);
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!orderCode) return;
+    
     setSearching(true);
     setResult(null);
     setError(false);
 
-    // Static simulation
-    setTimeout(() => {
+    try {
+      // Extract numeric ID from MD-X format if needed
+      const numericId = orderCode.replace('MD-', '');
+      const data = await getOrder(numericId);
+      
+      // Map backend status to index
+      const statusMap: Record<string, number> = {
+        'en attente': 0,
+        'en fabrication': 1,
+        'en cours de livraison': 2,
+        'livré': 3
+      };
+
+      setResult({
+        id: `MD-${data.id}`,
+        status: statusMap[data.statut?.toLowerCase()] || 0,
+        items: data.articles_commandes.length > 0 ? data.articles_commandes.map((art: any) => ({
+          name: art.produits?.nom || 'Produit Sur Mesure',
+          qty: art.quantite || 1,
+          price: `${art.produits?.prix || data.prix_total} MAD`
+        })) : [{
+          name: 'Produit Sur Mesure',
+          qty: 1,
+          price: `${data.prix_total || 'À définir'} MAD`
+        }],
+        total: `${data.prix_total || 'En attente'} MAD`,
+        address: data.utilisateurs?.adresse || 'Non renseignée',
+        client: data.utilisateurs?.nom || 'Client'
+      });
+    } catch (err) {
+      console.error("Tracking error:", err);
+      setError(true);
+    } finally {
       setSearching(false);
-      if (orderCode.toUpperCase().startsWith('MD-2024-')) {
-        setResult({
-          id: 'MD-2024-X102',
-          status: 2, // 0: Pending, 1: Making, 2: Shipping, 3: Delivered
-          items: [
-            { name: 'Table Chêne Artisanale', qty: 1, price: '1250 €' },
-            { name: 'Chaises Assorties', qty: 4, price: '800 €' }
-          ],
-          total: '2050 €',
-          address: '48 Lot IGUIDER, Allal El Fasi, Marrakech',
-          client: 'Amine El Fassi'
-        });
-      } else {
-        setError(true);
-      }
-    }, 1500);
+    }
   };
 
   const statusSteps = [
