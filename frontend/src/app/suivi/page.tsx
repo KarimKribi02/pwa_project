@@ -46,11 +46,11 @@ export default function OrderTracking() {
       setResult({
         id: `MD-${data.id}`,
         status: statusMap[data.statut?.toLowerCase()] || 0,
-        items: data.articles_commandes.length > 0 ? data.articles_commandes.map((art: any) => ({
-          name: art.produits?.nom || 'Produit Sur Mesure',
-          qty: art.quantite || 1,
-          price: `${art.produits?.prix || data.prix_total} MAD`
-        })) : [{
+        items: data.produits ? [{
+          name: data.produits.nom || 'Produit Sur Mesure',
+          qty: data.quantite || 1,
+          price: `${data.produits.prix || data.prix_total} MAD`
+        }] : [{
           name: 'Produit Sur Mesure',
           qty: 1,
           price: `${data.prix_total || 'À définir'} MAD`

@@ -9,14 +9,19 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Artisan Palette  
+        // Artisan Palette
         'cream': '#fcf9f3',
         'charcoal': '#1c1c18',
         'forest': '#396632',   // Primary Button
         'oak': '#7c5639',      // Accent
+        'accent': '#e66d3e',
         'surface-low': '#f6f3ed',
         'surface-lowest': '#ffffff',
         'outline-variant': 'rgba(28, 28, 24, 0.15)',
+        // Standard colors for compatibility
+        primary: '#396632',
+        secondary: '#7c5639',
+        surface: '#f6f3ed',
       },
       fontFamily: {
         serif: ['var(--font-serif)', 'serif'],

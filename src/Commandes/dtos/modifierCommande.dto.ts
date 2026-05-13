@@ -5,4 +5,7 @@ export class ModifierCommandeDto {
   longueur?: string;
   couleur?: string;
   type_bois?: string;
+  duree?: number;
+  id_produit?: string;
+  quantite?: number;
 }

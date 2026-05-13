@@ -6,33 +6,43 @@ import {
   ShoppingCart, 
   TrendingUp, 
   Clock, 
-  ArrowUpRight, 
-  ArrowDownRight 
+  ArrowUpRight,
+  Download
 } from 'lucide-react';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getProducts, getAllOrders } from '@/services/api';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import RecentOrders from './recent-orders';
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const reportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function fetchStats() {
       try {
-        const [products, orders] = await Promise.all([
+        const [productsData, ordersData] = await Promise.all([
           getProducts(),
           getAllOrders()
         ]);
 
-        const totalRevenue = orders.reduce((sum: number, order: any) => sum + (Number(order.prix_total) || 0), 0);
-        const pendingOrders = orders.filter((o: any) => o.statut?.toLowerCase() === 'en attente').length;
+        setProducts(productsData);
+        setOrders(ordersData);
+
+        const totalRevenue = ordersData.reduce((sum: number, order: any) => sum + (Number(order.prix_total) || 0), 0);
+        const pendingOrders = ordersData.filter((o: any) => o.statut?.toLowerCase() === 'en attente').length;
+        const completedOrders = ordersData.filter((o: any) => o.statut?.toLowerCase() === 'complétée').length;
 
         setStats([
-          { label: 'Total Produits', value: products.length.toString(), icon: <Package />, change: '+12%', isPositive: true },
-          { label: 'Commandes', value: orders.length.toString(), icon: <ShoppingCart />, change: '+5%', isPositive: true },
-          { label: 'Chiffre d\'Affaires', value: `${(totalRevenue / 1000).toFixed(1)}K MAD`, icon: <TrendingUp />, change: '+18%', isPositive: true },
-          { label: 'En attente', value: pendingOrders.toString(), icon: <Clock />, change: '-2%', isPositive: false },
+          { label: 'Total Produits', value: productsData.length.toString(), icon: <Package /> },
+          { label: 'Commandes', value: ordersData.length.toString(), icon: <ShoppingCart /> },
+          { label: 'Chiffre d\'Affaires', value: `${(totalRevenue / 1000).toFixed(1)}K MAD`, icon: <TrendingUp /> },
+          { label: 'En attente', value: pendingOrders.toString(), icon: <Clock /> },
         ]);
       } catch (error) {
         console.error("Failed to fetch dashboard stats:", error);
@@ -43,18 +53,60 @@ export default function DashboardPage() {
     fetchStats();
   }, []);
 
-  const salesData = [40, 70, 45, 90, 65, 80, 50]; // Still sample heights for bars for visualization
+  const generatePDF = async () => {
+    if (!reportRef.current) return;
+    
+    try {
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff'
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const imgWidth = 210;
+      const pageHeight = 295;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save(`rapport-dashboard-${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error('Erreur lors de la génération du PDF:', error);
+    }
+  };
+
+  const salesData = [40, 70, 45, 90, 65, 80, 50];
 
   return (
-    <div className="space-y-12">
+    <div ref={reportRef} className="space-y-12 p-8 bg-white">
       {/* Welcome Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-3xl font-serif text-primary">Vue d'ensemble</h2>
           <p className="text-stone-500 font-medium">Bon retour au sein de l'atelier, voici vos dernières performances.</p>
         </div>
-        <button className="bg-primary text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:brightness-110 shadow-lg shadow-primary/10">
-          Générer Rapport <ArrowUpRight size={18} />
+        <button 
+          onClick={generatePDF}
+          className="bg-primary text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:brightness-110 shadow-lg shadow-primary/10 transition-all"
+        >
+          Générer Rapport <Download size={18} />
         </button>
       </div>
 
@@ -66,17 +118,11 @@ export default function DashboardPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.1 }}
-            className="bg-white p-6 rounded-2xl shadow-sm border border-primary/5 flex flex-col justify-between"
+            className="bg-white p-6 rounded-2xl shadow-sm border border-primary/5"
           >
             <div className="flex justify-between items-start">
               <div className="w-12 h-12 bg-surface-low rounded-xl flex items-center justify-center text-primary">
                 {stat.icon}
-              </div>
-              <div className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full ${
-                stat.isPositive ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
-              }`}>
-                {stat.isPositive ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
-                {stat.change}
               </div>
             </div>
             <div className="mt-4">
@@ -147,6 +193,9 @@ export default function DashboardPage() {
           </button>
         </div>
       </div>
+
+      {/* Recent Orders */}
+      <RecentOrders />
     </div>
   );
 }

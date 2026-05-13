@@ -22,7 +22,7 @@ export class UtilisateurController{
             commandes: user.commandes?.map(cmd => ({
                 ...cmd,
                 id: cmd.id.toString(),
-                client_id: cmd.client_id?.toString()
+                utilisateur_id: cmd.client_id?.toString()
             }))
         }));
     }
@@ -43,31 +43,32 @@ export class UtilisateurController{
             commandes: utilisateur.commandes?.map(cmd => ({
                 ...cmd,
                 id: cmd.id.toString(),
-                client_id: cmd.client_id?.toString()
+                utilisateur_id: cmd.client_id?.toString()
             }))
         };
     }
 
     // Afficher un utilisateur par email
     @Get('/api/UtilisateurByEmail/:email')
-    public async getUtilisateurByEmail(@Param('email') email: string){
-        const utilisateur = await this.prisma.utilisateurs.findUnique({
-            where: { email: email },
-            include: {
-                commandes: true
-            }
-        });
-        if(!utilisateur) throw new NotFoundException("Utilisateur not found");
-        return {
-            ...utilisateur,
-            id: utilisateur.id.toString(),
-            commandes: utilisateur.commandes?.map(cmd => ({
-                ...cmd,
-                id: cmd.id.toString(),
-                client_id: cmd.client_id?.toString()
-            }))
-        };
+public async getUtilisateurByEmail(@Param('email') email: string){
+
+    const utilisateur = await this.prisma.utilisateurs.findUnique({
+        where: { email }
+    });
+
+    if (!utilisateur) {
+        throw new NotFoundException("Utilisateur not found");
     }
+
+    return {
+        ...utilisateur,
+        id: utilisateur.id.toString(),
+        nom: utilisateur.nom,
+        email: utilisateur.email,
+        mot_passe: utilisateur.mot_passe,
+        role: utilisateur.role,
+    };
+}
 
     // Ajouter un utilisateur
     @Post('/api/addUtilisateur')
@@ -77,7 +78,9 @@ export class UtilisateurController{
                 nom: body.nom,
                 email: body.email,
                 mot_passe: body.mot_passe,
-                role: body.role || 'user'
+                role: body.role || 'user',
+                ...(body.adresse && { adresse: body.adresse }),
+                ...(body.telephone && { telephone: body.telephone })
             },
             include: {
                 commandes: true
@@ -89,7 +92,7 @@ export class UtilisateurController{
             commandes: newUtilisateur.commandes?.map(cmd => ({
                 ...cmd,
                 id: cmd.id.toString(),
-                client_id: cmd.client_id?.toString()
+                utilisateur_id: cmd.client_id?.toString()
             }))
         };
     }
@@ -116,7 +119,7 @@ export class UtilisateurController{
                 commandes: utilisateur.commandes?.map(cmd => ({
                     ...cmd,
                     id: cmd.id.toString(),
-                    client_id: cmd.client_id?.toString()
+                    utilisateur_id: cmd.client_id?.toString()
                 }))
             };
         } catch (error) {

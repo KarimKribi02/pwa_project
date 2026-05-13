@@ -13,13 +13,39 @@ import {
   User,
   Settings
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState,useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+
+  const [user, setUser] = useState<any>(null);
+  
+  
+  useEffect(() => {
+  async function fetchUser() {
+    try {
+      const stored = localStorage.getItem("admin_user");
+      if (!stored) return;
+
+      const userLocal = JSON.parse(stored);
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/UtilisateurByEmail/${encodeURIComponent(userLocal.email)}`
+      );
+
+      const data = await res.json();
+
+      setUser(data);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  fetchUser();
+}, []);
 
   // If we are on the login page, don't show the sidebar
   if (pathname === '/admin/login') {
@@ -28,6 +54,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const menuItems = [
     { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/admin/dashboard' },
+    { name: 'Catégories', icon: <FileText size={20} />, path: '/admin/categories' },
     { name: 'Produits', icon: <Package size={20} />, path: '/admin/products' },
     { name: 'Commandes', icon: <ShoppingCart size={20} />, path: '/admin/orders' },
     { name: 'Facturation', icon: <FileText size={20} />, path: '/admin/billing' },
@@ -91,8 +118,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
           <div className="flex items-center gap-4">
             <div className="text-right hidden sm:block">
-              <p className="text-sm font-bold text-primary">Jean Artisan</p>
-              <p className="text-[10px] font-bold text-secondary uppercase tracking-widest">Maître Menuisier</p>
+              <h3 className="text-xl font-serif text-primary">
+  {user?.nom || "Utilisateur"}
+</h3>
+
+<p className="text-stone-500 font-medium">
+  {user?.role || "Rôle"}
+</p>
             </div>
             <div className="w-10 h-10 rounded-full bg-surface-highest border border-primary/10 flex items-center justify-center text-primary overflow-hidden">
               <User size={24} />

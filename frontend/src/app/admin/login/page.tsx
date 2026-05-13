@@ -26,6 +26,7 @@ export default function AdminLogin() {
         if (user.role === 'admin') {
           // Set basic session in localStorage for this demo
           localStorage.setItem('admin_user', JSON.stringify(user));
+          localStorage.setItem('userEmail', email);
           router.push('/admin/dashboard');
         } else {
           setError("Accès refusé. Vous n'avez pas les droits d'administration.");

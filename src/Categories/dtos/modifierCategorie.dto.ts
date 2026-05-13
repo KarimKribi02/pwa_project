@@ -1,5 +1,15 @@
-export class ModifierCategorieDto{
-    nom?: string;
-    slug?: string;
-    description?: string;
+import { IsOptional, IsString } from 'class-validator';
+
+export class ModifierCategorieDto {
+  @IsOptional()
+  @IsString()
+  nom?: string;
+
+  @IsOptional()
+  @IsString()
+  slug?: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
 }

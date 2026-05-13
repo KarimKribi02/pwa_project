@@ -65,8 +65,7 @@ export class ProduitController{
     const produits = await this.prisma.produits.findMany({
       where: { categorie_id: BigInt(categorieId) },
       include: {
-        categories: true,
-        produits_images: true
+        categories: true
       },
       orderBy: { created_at: 'desc' }
     });
@@ -77,12 +76,7 @@ export class ProduitController{
       categories: produit.categories ? {
         ...produit.categories,
         id: produit.categories.id.toString()
-      } : null,
-      produits_images: produit.produits_images?.map(img => ({
-        ...img,
-        id: img.id.toString(),
-        produit_id: img.produit_id?.toString()
-      }))
+      } : null
     }));
   }
 
@@ -92,8 +86,7 @@ export class ProduitController{
     const produits = await this.prisma.produits.findMany({
       where: { vedette: true },
       include: {
-        categories: true,
-        produits_images: true
+        categories: true
       },
       orderBy: { created_at: 'desc' }
     });
@@ -104,12 +97,7 @@ export class ProduitController{
       categories: produit.categories ? {
         ...produit.categories,
         id: produit.categories.id.toString()
-      } : null,
-      produits_images: produit.produits_images?.map(img => ({
-        ...img,
-        id: img.id.toString(),
-        produit_id: img.produit_id?.toString()
-      }))
+      } : null
     }));
   }
 
@@ -123,28 +111,38 @@ export class ProduitController{
     prix?: number;
     vedette?: boolean;
   }){
-    const newProduit = await this.prisma.produits.create({
-      data: {
-        categorie_id: BigInt(body.categorie_id),
-        nom: body.nom,
-        slug: body.slug,
-        description: body.description,
-        prix: body.prix ? body.prix.toString() : null,
-        vedette: body.vedette || false
-      },
-      include: {
-        categories: true
-      }
-    });
-    return {
-      ...newProduit,
-      id: newProduit.id.toString(),
-      categorie_id: newProduit.categorie_id?.toString(),
-      categories: newProduit.categories ? {
-        ...newProduit.categories,
-        id: newProduit.categories.id.toString()
-      } : null
-    };
+    console.log('🔍 addProduit called with body:', body);
+
+    try {
+      const newProduit = await this.prisma.produits.create({
+        data: {
+          categorie_id: BigInt(body.categorie_id),
+          nom: body.nom,
+          slug: body.slug,
+          description: body.description,
+          prix: body.prix ? body.prix.toString() : null,
+          vedette: body.vedette || false
+        },
+        include: {
+          categories: true
+        }
+      });
+
+      console.log('✅ Product created successfully with id:', newProduit.id.toString());
+
+      return {
+        ...newProduit,
+        id: newProduit.id.toString(),
+        categorie_id: newProduit.categorie_id?.toString(),
+        categories: newProduit.categories ? {
+          ...newProduit.categories,
+          id: newProduit.categories.id.toString()
+        } : null
+      };
+    } catch (error) {
+      console.error('❌ Error creating product:', error);
+      throw error;
+    }
   }
 
   // Modifier un produit

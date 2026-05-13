@@ -1,76 +1,88 @@
-import { Controller, Get, Post, Body, Param, NotFoundException, Put, Delete, BadRequestException } from "@nestjs/common";
+import { Controller, Get, Post, Body, Param, NotFoundException, Put, Delete, BadRequestException, ValidationPipe } from "@nestjs/common";
 import { PrismaService } from "src/prisma.service";
-import { AjouterFactureDto } from "./dtos/ajouterFacture.dto";
 import { ModifierFactureDto } from "./dtos/modifierFacture.dto";
 
 @Controller({})
 export class FactureController {
   constructor(private prisma: PrismaService) {}
 
-  private generateRandomNumeroFacture(): string {
+  private generateRandomNumFacture(): string {
     const year = new Date().getFullYear();
     const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();
     return `FACT-${year}-${randomPart}`;
   }
 
-  private calculateMontantTotal(articles: any[]): string {
-    if (!articles || articles.length === 0) return '0';
-    const total = articles.reduce((sum, article) => {
-      const quantite = parseFloat(article.quantite || 0);
-      const prixProduit = article.produits?.prix ? parseFloat(article.produits.prix.toString()) : parseFloat(article.prix || 0);
-      return sum + quantite * prixProduit;
-    }, 0);
-    return total.toFixed(2);
+  private calculateMontantCommande(commande: any): number {
+    const prix = commande.produits?.prix ? parseFloat(commande.produits.prix.toString()) : 0;
+    const quantite = commande.quantite ?? 1;
+    return prix * quantite;
   }
 
   private formatFactureResponse(facture: any) {
-    const commande = facture.commandes;
-    const utilisateur = facture.utilisateurs;
-
     return {
       id: facture.id.toString(),
-      commande_id: facture.commande_id?.toString() || null,
-      utilisateur_id: facture.utilisateur_id?.toString() || null,
-      numero_facture: facture.numero_facture,
+      numero_facture: facture.numero_facture || null,
       date_emission: facture.date_emission?.toISOString() || null,
       date_paiement: facture.date_paiement?.toISOString() || null,
-      montant_totale: facture.montant_totale?.toString() || '0',
-      statut: facture.statut,
-      nomcomplete: facture.nomcomplete,
-      adresse: facture.adresse,
-      telephone: facture.telephone,
-      email: facture.email,
+      id_commande: facture.commande_id?.toString() || null,
+      id_utilisateur: facture.utilisateur_id?.toString() || null,
+      montant_totale: facture.montant_totale ? facture.montant_totale.toString() : '0',
+      statut: facture.statut || null,
+      nomcomplete: facture.nomcomplete || null,
+      adresse: facture.adresse || null,
+      telephone: facture.telephone || null,
+      email: facture.email || null,
       created_at: facture.created_at?.toISOString() || null,
-      commandes: commande
-        ? {
-            id: commande.id.toString(),
-            statut: commande.statut,
-            prix_total: commande.prix_total?.toString() || '0',
-            client_id: commande.client_id?.toString() || null,
-          }
-        : null,
-      utilisateurs: utilisateur
-        ? {
-            id: utilisateur.id.toString(),
-            nomcomplete: utilisateur.nom || null,
-            email: utilisateur.email,
-            adresse: utilisateur.adresse || null,
-            telephone: utilisateur.telephone || null,
-          }
-        : null,
+      commandes: facture.commandes ? {
+        id: facture.commandes.id.toString(),
+        statut: facture.commandes.statut,
+        client_id: facture.commandes.client_id?.toString() || null,
+        produit_id: facture.commandes.produit_id?.toString() || null,
+        produits: facture.commandes.produits ? {
+          id: facture.commandes.produits.id.toString(),
+          nom: facture.commandes.produits.nom || null,
+          slug: facture.commandes.produits.slug || null,
+          description: facture.commandes.produits.description || null,
+          categorie_id: facture.commandes.produits.categorie_id?.toString() || null,
+          prix: facture.commandes.produits.prix?.toString() || null,
+          vedette: facture.commandes.produits.vedette ?? false,
+          created_at: facture.commandes.produits.created_at ? facture.commandes.produits.created_at.toISOString() : null,
+        } : null,
+        // Pour le nouveau modèle (1 seul produit par commande)
+        articles: facture.commandes.produits
+          ? [
+              {
+                id: null,
+                produit_id: facture.commandes.produit_id?.toString() || null,
+                nom: facture.commandes.produits.nom || null,
+                quantite: facture.commandes.quantite || null,
+                prix: facture.commandes.produits.prix?.toString() || null,
+                prix_total_ligne: facture.commandes.produits.prix
+                  ? (parseFloat(facture.commandes.produits.prix.toString()) * (facture.commandes.quantite ?? 1)).toString()
+                  : '0',
+              },
+            ]
+          : [],
+      } : null,
+      utilisateurs: facture.utilisateurs ? {
+        id: facture.utilisateurs.id.toString(),
+        nom: facture.utilisateurs.nom || null,
+        email: facture.utilisateurs.email || null,
+        adresse: facture.utilisateurs.adresse || null,
+        telephone: facture.utilisateurs.telephone || null,
+      } : null,
     };
   }
 
   @Get('/api/AllFactures')
   public async getAllFactures() {
-    const factures = await (this.prisma.facture as any).findMany({
+    const factures = await this.prisma.facture.findMany({
       include: {
         commandes: {
-          select: {
-            id: true,
-            statut: true,
-            prix_total: true,
-            client_id: true,
+          include: {
+            utilisateurs: true,
+            produits: true,
+
           },
         },
         utilisateurs: {
@@ -78,6 +90,8 @@ export class FactureController {
             id: true,
             nom: true,
             email: true,
+            adresse: true,
+            telephone: true,
           },
         },
       },
@@ -86,17 +100,16 @@ export class FactureController {
     return factures.map((facture) => this.formatFactureResponse(facture));
   }
 
-  @Get('/api/SingleFacture/:id')
+@Get('/api/SingleFacture/:id')
   public async getFactureById(@Param('id') id: string) {
-    const facture = await (this.prisma.facture as any).findUnique({
+    const facture = await this.prisma.facture.findUnique({
       where: { id: BigInt(id) },
       include: {
         commandes: {
-          select: {
-            id: true,
-            statut: true,
-            prix_total: true,
-            client_id: true,
+          include: {
+            utilisateurs: true,
+            produits: true,
+
           },
         },
         utilisateurs: {
@@ -104,6 +117,8 @@ export class FactureController {
             id: true,
             nom: true,
             email: true,
+            adresse: true,
+            telephone: true,
           },
         },
       },
@@ -112,17 +127,16 @@ export class FactureController {
     return this.formatFactureResponse(facture);
   }
 
-  @Get('/api/FacturesByCommande/:commandeId')
+@Get('/api/FacturesByCommande/:commandeId')
   public async getFacturesByCommande(@Param('commandeId') commandeId: string) {
-    const factures = await (this.prisma.facture as any).findMany({
+    const factures = await this.prisma.facture.findMany({
       where: { commande_id: BigInt(commandeId) },
       include: {
         commandes: {
-          select: {
-            id: true,
-            statut: true,
-            prix_total: true,
-            client_id: true,
+          include: {
+            utilisateurs: true,
+            produits: true,
+
           },
         },
         utilisateurs: {
@@ -130,6 +144,8 @@ export class FactureController {
             id: true,
             nom: true,
             email: true,
+            adresse: true,
+            telephone: true,
           },
         },
       },
@@ -138,17 +154,16 @@ export class FactureController {
     return factures.map((facture) => this.formatFactureResponse(facture));
   }
 
-  @Get('/api/FacturesByUtilisateur/:utilisateurId')
+@Get('/api/FacturesByUtilisateur/:utilisateurId')
   public async getFacturesByUtilisateur(@Param('utilisateurId') utilisateurId: string) {
-    const factures = await (this.prisma.facture as any).findMany({
+    const factures = await this.prisma.facture.findMany({
       where: { utilisateur_id: BigInt(utilisateurId) },
       include: {
         commandes: {
-          select: {
-            id: true,
-            statut: true,
-            prix_total: true,
-            client_id: true,
+          include: {
+            utilisateurs: true,
+            produits: true,
+
           },
         },
         utilisateurs: {
@@ -156,6 +171,8 @@ export class FactureController {
             id: true,
             nom: true,
             email: true,
+            adresse: true,
+            telephone: true,
           },
         },
       },
@@ -164,74 +181,69 @@ export class FactureController {
     return factures.map((facture) => this.formatFactureResponse(facture));
   }
 
-  @Post('/api/addFacture')
-  public async addFacture(@Body() body: AjouterFactureDto) {
+@Post('/api/addFacture')
+  public async addFacture(
+    @Body(new ValidationPipe({ whitelist: false, forbidNonWhitelisted: false, transform: false })) body: any,
+  ) {
     try {
-      if (!body.commande_id || isNaN(body.commande_id)) {
-        throw new BadRequestException('commande_id est obligatoire et doit être un nombre valide');
+      const id_commande = Number(body.id_commande);
+      const id_utilisateur = Number(body.id_utilisateur);
+
+      if (!id_commande || isNaN(id_commande)) {
+        throw new BadRequestException('id_commande est obligatoire et doit être un nombre valide');
       }
-      if (!body.utilisateur_id || isNaN(body.utilisateur_id)) {
-        throw new BadRequestException('utilisateur_id est obligatoire et doit être un nombre valide');
+      if (!id_utilisateur || isNaN(id_utilisateur)) {
+        throw new BadRequestException('id_utilisateur est obligatoire et doit être un nombre valide');
       }
 
       const commande = await this.prisma.commandes.findUnique({
-        where: { id: BigInt(body.commande_id) },
+        where: { id: BigInt(body.id_commande) },
         include: {
           utilisateurs: {
             select: {
               id: true,
               nom: true,
               email: true,
+              adresse: true,
+              telephone: true,
             },
           },
-          articles_commandes: {
-            include: {
-              produits: true,
-            },
-          },
+          produits: true,
         },
       });
 
       if (!commande) {
-        throw new NotFoundException(`Commande introuvable pour l'ID ${body.commande_id}`);
+        throw new NotFoundException(`Commande introuvable pour l'ID ${body.id_commande}`);
       }
 
-      if (!commande.client_id || commande.client_id.toString() !== body.utilisateur_id.toString()) {
+      if (!commande.client_id || commande.client_id.toString() !== body.id_utilisateur.toString()) {
         throw new BadRequestException("Le client de la commande ne correspond pas à l'utilisateur fourni");
       }
 
-      const utilisateur = await this.prisma.utilisateurs.findUnique({
-        where: { id: BigInt(body.utilisateur_id) },
-      });
-      const utilisateurData = utilisateur as any;
-      if (!utilisateur) {
-        throw new NotFoundException(`Utilisateur introuvable pour l'ID ${body.utilisateur_id}`);
-      }
-
-      const montantTotale = commande.prix_total?.toString() || this.calculateMontantTotal(commande.articles_commandes || []);
-      const numeroFacture = this.generateRandomNumeroFacture();
+      const numeroFacture = this.generateRandomNumFacture();
+      const emissionDate = body.date_emission ? new Date(body.date_emission) : new Date();
+      const paiementDate = body.date_paiement ? new Date(body.date_paiement) : new Date();
+      const montantTotale = this.calculateMontantCommande(commande);
 
       const newFacture = await this.prisma.facture.create({
         data: {
-          commande_id: BigInt(body.commande_id),
-          utilisateur_id: BigInt(body.utilisateur_id),
           numero_facture: numeroFacture,
-          date_emission: body.date_emission ? new Date(body.date_emission) : new Date(),
-          date_paiement: body.date_paiement ? new Date(body.date_paiement) : null,
+          commande_id: BigInt(id_commande),
+          utilisateur_id: BigInt(id_utilisateur),
+          date_emission: emissionDate,
+          date_paiement: paiementDate,
           montant_totale: montantTotale,
-          statut: commande.statut || 'en attente',
-          nomcomplete: utilisateurData.nom || null,
-          adresse: utilisateurData.adresse || null,
-          telephone: utilisateurData.telephone || null,
-          email: utilisateurData.email || null,
+          statut: 'En attente',
+          nomcomplete: commande.utilisateurs?.nom || null,
+          adresse: commande.utilisateurs?.adresse || null,
+          telephone: commande.utilisateurs?.telephone || null,
+          email: commande.utilisateurs?.email || null,
         },
         include: {
           commandes: {
-            select: {
-              id: true,
-              statut: true,
-              prix_total: true,
-              client_id: true,
+            include: {
+              utilisateurs: true,
+              produits: true,
             },
           },
           utilisateurs: {
@@ -239,6 +251,8 @@ export class FactureController {
               id: true,
               nom: true,
               email: true,
+              adresse: true,
+              telephone: true,
             },
           },
         },
@@ -269,8 +283,7 @@ export class FactureController {
             select: {
               id: true,
               statut: true,
-              prix_total: true,
-              client_id: true,
+              utilisateur_id: true,
             },
           },
           utilisateurs: {

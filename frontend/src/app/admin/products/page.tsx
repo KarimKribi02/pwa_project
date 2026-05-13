@@ -21,6 +21,7 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('');
   const [newProduct, setNewProduct] = useState({
     nom: '',
     categorie_id: '',
@@ -28,9 +29,28 @@ export default function ProductsPage() {
     description: '',
     vedette: false
   });
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [editingProductImage, setEditingProductImage] = useState<File | null>(null);
+  const [editingProductImagePreview, setEditingProductImagePreview] = useState<string | null>(null);
+  const editFileInputRef = useRef<HTMLInputElement>(null);
+
+  const filteredProducts = products.filter((product) => {
+    const matchesSearch = !searchTerm
+      ? true
+      : (product.nom || '').toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (product.categories?.nom || '').toString().toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesCategory = !categoryFilter
+      ? true
+      : (product.categorie_id?.toString() === categoryFilter || product.categories?.id?.toString() === categoryFilter);
+
+    return matchesSearch && matchesCategory;
+  });
 
   const fetchProducts = async () => {
     try {
@@ -38,10 +58,14 @@ export default function ProductsPage() {
         getProducts(),
         getCategories()
       ]);
+
+      // DEBUG
+      console.log('DEBUG produitsData (refresh):', productsData);
+
       setProducts(productsData);
       setCategories(categoriesData);
     } catch (err) {
-      console.error("Failed to fetch products:", err);
+      console.error('Failed to fetch products:', err);
     } finally {
       setLoading(false);
     }
@@ -54,31 +78,40 @@ export default function ProductsPage() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        setImagePreview(base64String);
-        setSelectedImage(base64String);
-      };
-      reader.readAsDataURL(file);
+      setSelectedImage(file);
+      setImagePreview(URL.createObjectURL(file));
     }
   };
 
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      console.log('Creating product with data:', {
+        ...newProduct,
+        categorie_id: Number(newProduct.categorie_id),
+        prix: Number(newProduct.prix)
+      });
+
       const createdProduct = await addProduct({
         ...newProduct,
         categorie_id: Number(newProduct.categorie_id),
         prix: Number(newProduct.prix)
       });
 
+      console.log('Product created:', createdProduct);
+
       if (selectedImage && createdProduct.id) {
-        await addImage({
-          produit_id: createdProduct.id,
-          url_image: selectedImage,
-          principale: true
-        });
+        console.log('Adding image for product:', createdProduct.id, 'with file');
+        try {
+          await addImage(createdProduct.id, selectedImage, true);
+          console.log('Image added successfully');
+        } catch (imageError) {
+          console.error('Failed to add image:', imageError);
+          alert(`Produit créé mais erreur lors de l'ajout d'image: ${imageError.message}`);
+          // Continue to close the form and refresh
+        }
+      } else {
+        console.log('No image selected - selectedImage:', !!selectedImage, 'product id:', createdProduct.id);
       }
 
       setShowAddForm(false);
@@ -88,17 +121,97 @@ export default function ProductsPage() {
       fetchProducts();
     } catch (err) {
       console.error("Failed to add product:", err);
+      alert(`Erreur lors de la création du produit: ${err.message}`);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm("Voulez-vous vraiment supprimer ce produit ?")) {
-      try {
-        await deleteProduct(id);
-        fetchProducts();
-      } catch (err) {
-        console.error("Failed to delete product:", err);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const requestDelete = (id: string) => {
+    setProductToDelete(id);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDelete = async () => {
+    if (!productToDelete) return;
+    setDeleting(true);
+    try {
+      await deleteProduct(productToDelete);
+      await fetchProducts();
+      setShowDeleteConfirm(false);
+      setProductToDelete(null);
+    } catch (err) {
+      console.error('Failed to delete product:', err);
+      alert('Erreur lors de la suppression du produit');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleEditClick = (product: any) => {
+    setEditingProduct({
+      id: product.id,
+      nom: product.nom,
+      categorie_id: product.categorie_id.toString(),
+      prix: product.prix,
+      description: product.description,
+      vedette: product.vedette
+    });
+    const mainImage = product.produits_images?.find((img: any) => img.principale)?.url_image 
+                      || product.produits_images?.[0]?.url_image;
+    setEditingProductImagePreview(mainImage || null);
+    setEditingProductImage(null);
+    setShowEditForm(true);
+  };
+
+  const handleEditImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setEditingProductImage(file);
+      setEditingProductImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleUpdateProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      console.log('Updating product:', editingProduct.id);
+
+      const updated = await updateProduct(editingProduct.id, {
+        nom: editingProduct.nom,
+        categorie_id: Number(editingProduct.categorie_id),
+        prix: Number(editingProduct.prix),
+        description: editingProduct.description,
+        vedette: editingProduct.vedette
+      });
+      console.log('✅ Product updated:', updated);
+
+      if (editingProductImage) {
+        console.log('Updating image for product:', editingProduct.id);
+        try {
+          const imgRes = await addImage(editingProduct.id, editingProductImage, true);
+          console.log('✅ Image updated successfully:', imgRes);
+          // Forcer le refresh de la liste + des previews
+          if (imgRes?.url_image) {
+            setEditingProductImagePreview(imgRes.url_image);
+          }
+        } catch (imageError) {
+          console.error('Failed to update image:', imageError);
+          alert(`Produit modifié mais erreur lors de la mise à jour d'image: ${imageError.message}`);
+        }
       }
+
+      // Fermer la modale après avoir rafraîchi la liste (évite un affichage incomplet)
+      await fetchProducts();
+      setShowEditForm(false);
+      setEditingProduct(null);
+      setEditingProductImage(null);
+      setEditingProductImagePreview(null);
+    } catch (err) {
+      console.error("Failed to update product:", err);
+      alert(`Erreur lors de la modification du produit: ${err.message}`);
     }
   };
 
@@ -136,11 +249,17 @@ export default function ProductsPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <select className="bg-white border border-primary/5 rounded-xl px-6 py-4 text-primary font-bold outline-none focus:ring-2 focus:ring-primary/20">
-          <option>Toutes les Catégories</option>
-          <option>Portes</option>
-          <option>Tables</option>
-          <option>Cuisines</option>
+        <select 
+          className="bg-white border border-primary/5 rounded-xl px-6 py-4 text-primary font-bold outline-none focus:ring-2 focus:ring-primary/20"
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
+        >
+          <option value="">Toutes les Catégories</option>
+          {categories.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.nom}
+            </option>
+          ))}
         </select>
       </div>
 
@@ -159,10 +278,10 @@ export default function ProductsPage() {
           <tbody className="divide-y divide-primary/5">
             {loading ? (
               <tr><td colSpan={5} className="text-center py-10">Chargement...</td></tr>
-            ) : products.length === 0 ? (
+            ) : filteredProducts.length === 0 ? (
               <tr><td colSpan={5} className="text-center py-10">Aucun produit trouvé</td></tr>
             ) : (
-              products.map((product) => {
+              filteredProducts.map((product) => {
                 const mainImage = product.produits_images?.find((img: any) => img.principale)?.url_image 
                                  || product.produits_images?.[0]?.url_image 
                                  || "/product_door.png";
@@ -188,11 +307,14 @@ export default function ProductsPage() {
                     <td className="px-8 py-4 text-sm font-black text-primary">{product.prix} MAD</td>
                     <td className="px-8 py-4">
                       <div className="flex items-center gap-2">
-                        <button className="p-2 text-gray-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-all">
+                        <button 
+                          onClick={() => handleEditClick(product)}
+                          className="p-2 text-gray-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-all"
+                        >
                           <Edit3 size={18} />
                         </button>
                         <button 
-                          onClick={() => handleDelete(product.id)}
+                          onClick={() => requestDelete(product.id)}
                           className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
                         >
                           <Trash2 size={18} />
@@ -334,6 +456,227 @@ export default function ProductsPage() {
                   <button type="button" onClick={() => setShowAddForm(false)} className="flex-1 py-4 text-stone-400 font-bold uppercase tracking-widest text-[10px]">Annuler</button>
                   <button type="submit" className="flex-[2] bg-primary text-white py-4 rounded-2xl font-bold shadow-xl shadow-primary/20 hover:brightness-110 transition-all">
                     Enregistrer le Produit
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {showDeleteConfirm && productToDelete && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => {
+                if (!deleting) {
+                  setShowDeleteConfirm(false);
+                  setProductToDelete(null);
+                }
+              }}
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-surface w-full max-w-xl rounded-[2.5rem] shadow-2xl relative z-10 overflow-hidden flex flex-col"
+            >
+              <div className="bg-primary p-10 flex justify-between items-center shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
+                    <Trash2 size={22} className="text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-serif text-white">Supprimer un produit</h3>
+                    <p className="text-white/60 text-xs font-bold uppercase tracking-widest mt-1">
+                      Action irréversible
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    if (!deleting) {
+                      setShowDeleteConfirm(false);
+                      setProductToDelete(null);
+                    }
+                  }}
+                  className="text-white/50 hover:text-white p-2"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="p-10 space-y-6">
+                <div className="bg-red-50 border border-red-200 rounded-2xl p-6">
+                  <p className="text-red-800 text-sm font-bold">
+                    Voulez-vous vraiment supprimer ce produit ?
+                  </p>
+                  <p className="text-red-700/70 text-xs mt-2">
+                    ID: #{productToDelete}
+                  </p>
+                </div>
+
+                <div className="flex gap-4 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!deleting) {
+                        setShowDeleteConfirm(false);
+                        setProductToDelete(null);
+                      }
+                    }}
+                    className="flex-1 py-4 text-stone-400 font-bold uppercase tracking-widest text-[10px] rounded-2xl border border-primary/10 bg-white hover:bg-primary/5 transition-all"
+                    disabled={deleting}
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDelete}
+                    className="flex-[2] bg-red-600 text-white py-4 rounded-2xl font-bold shadow-xl shadow-red-600/20 hover:brightness-110 transition-all"
+                    disabled={deleting}
+                  >
+                    {deleting ? 'Suppression...' : 'Supprimer'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Product Modal */}
+      <AnimatePresence>
+        {showEditForm && editingProduct && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => setShowEditForm(false)}
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-surface w-full max-w-2xl rounded-[2.5rem] shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="bg-primary p-10 flex justify-between items-center shrink-0">
+                <div>
+                  <h3 className="text-2xl font-serif text-white italic">Modifier le Produit</h3>
+                  <p className="text-white/60 text-xs font-bold uppercase tracking-widest mt-1">Mettez à jour les informations</p>
+                </div>
+                <button onClick={() => setShowEditForm(false)} className="text-white/50 hover:text-white p-2">
+                  <X size={28} />
+                </button>
+              </div>
+
+              <form onSubmit={handleUpdateProduct} className="p-10 space-y-8 overflow-y-auto">
+                {/* Image Upload */}
+                <div 
+                  onClick={() => editFileInputRef.current?.click()}
+                  className="h-48 rounded-3xl border-2 border-dashed border-primary/20 bg-white flex flex-col items-center justify-center gap-2 text-primary/40 group cursor-pointer hover:border-primary/40 transition-all overflow-hidden relative"
+                >
+                  {editingProductImagePreview ? (
+                    <>
+                      <img src={editingProductImagePreview} alt="Preview" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <span className="bg-white/90 text-primary px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-lg">Changer l'image</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <ImageIcon size={40} className="group-hover:scale-110 transition-transform" />
+                      <span className="text-[10px] font-bold uppercase tracking-widest">Uploader une nouvelle image</span>
+                    </>
+                  )}
+                </div>
+                <input 
+                  type="file" 
+                  ref={editFileInputRef} 
+                  className="hidden" 
+                  accept="image/*" 
+                  onChange={handleEditImageChange}
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-2 block ml-1">NOM DU PRODUIT</label>
+                      <input 
+                        type="text" 
+                        required
+                        className="w-full bg-white border border-primary/10 px-6 py-4 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 font-medium" 
+                        placeholder="Ex: Porte Nomade..." 
+                        value={editingProduct.nom}
+                        onChange={(e) => setEditingProduct({ ...editingProduct, nom: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-2 block ml-1">CATÉGORIE</label>
+                      <select 
+                        required
+                        className="w-full bg-white border border-primary/10 px-6 py-4 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 font-bold"
+                        value={editingProduct.categorie_id}
+                        onChange={(e) => setEditingProduct({ ...editingProduct, categorie_id: e.target.value })}
+                      >
+                        <option value="">Sélectionner...</option>
+                        {categories.map(cat => (
+                          <option key={cat.id} value={cat.id}>{cat.nom}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-2 block ml-1 flex items-center gap-1">
+                        <Ruler size={10} /> VEDETTE ?
+                      </label>
+                      <div className="flex items-center gap-4 py-4">
+                        <input 
+                          type="checkbox" 
+                          className="w-6 h-6 accent-primary"
+                          checked={editingProduct.vedette}
+                          onChange={(e) => setEditingProduct({ ...editingProduct, vedette: e.target.checked })}
+                        />
+                        <span className="text-sm font-medium">Mettre en avant ce produit</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-2 block ml-1">PRIX (MAD)</label>
+                      <input 
+                        type="number" 
+                        required
+                        className="w-full bg-white border border-primary/10 px-6 py-4 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 font-black" 
+                        placeholder="990.00" 
+                        value={editingProduct.prix}
+                        onChange={(e) => setEditingProduct({ ...editingProduct, prix: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-2 block ml-1">DESCRIPTION</label>
+                  <textarea 
+                    className="w-full bg-white border border-primary/10 px-6 py-4 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 min-h-[120px] font-medium resize-none" 
+                    placeholder="Décrivez l'origine du bois, le style de sculpture..."
+                    value={editingProduct.description}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
+                  ></textarea>
+                </div>
+
+                <div className="pt-4 flex gap-4">
+                  <button type="button" onClick={() => setShowEditForm(false)} className="flex-1 py-4 text-stone-400 font-bold uppercase tracking-widest text-[10px]">Annuler</button>
+                  <button type="submit" className="flex-[2] bg-primary text-white py-4 rounded-2xl font-bold shadow-xl shadow-primary/20 hover:brightness-110 transition-all">
+                    Mettre à Jour
                   </button>
                 </div>
               </form>
