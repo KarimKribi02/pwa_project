@@ -27,10 +27,10 @@ export default function Navbar() {
 
   return (
     <header 
-      className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 rounded-full transition-all duration-500 w-[95%] max-w-7xl px-8 py-3 flex justify-between items-center ${
+      className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 rounded-full transition-all duration-500 w-[95%] max-w-7xl px-8 py-3 flex justify-between items-center backdrop-blur-md ${
         isOpaque 
-          ? "bg-white shadow-xl border border-gray-100 py-3" 
-          : "bg-white/10 backdrop-blur-md border border-white/20 py-4"
+          ? "bg-[#fcf9f3]/80 shadow-xl border border-[#2D5A27]/10 py-3" 
+          : "bg-white/10 border border-white/20 py-4"
       }`}
     >
       <Link href="/" className="flex items-center gap-2 group cursor-pointer">
@@ -51,18 +51,18 @@ export default function Navbar() {
       <nav className={`flex items-center gap-6 md:gap-8 font-sans text-[10px] md:text-xs uppercase tracking-[0.1em] font-medium transition-colors duration-300 ${
         isOpaque ? "text-primary" : "text-white/90"
       }`}>
-        <Link href="/catalog" className="hover:text-accent transition-colors">Atelier</Link>
-        <Link href="/about" className="hover:text-accent transition-colors">À Propos</Link>
-        <Link href="/suivi" className="hover:text-accent transition-colors">Suivi</Link>
-        <Link href="/contact" className="hover:text-accent transition-colors">Contact</Link>
+        <Link href="/catalog" className="hover:text-secondary transition-colors">Atelier</Link>
+        <Link href="/about" className="hover:text-secondary transition-colors">À Propos</Link>
+        <Link href="/suivi" className="hover:text-secondary transition-colors">Suivi</Link>
+        <Link href="/contact" className="hover:text-secondary transition-colors">Contact</Link>
       </nav>
-
+ 
       <div className="flex items-center">
         <Link 
           href="/admin/login"
           className={`px-6 py-2 text-[10px] uppercase font-bold tracking-widest transition-all rounded-full border ${
             isOpaque
-              ? "bg-accent text-white border-accent hover:brightness-110 shadow-lg shadow-accent/20" 
+              ? "bg-[#2D5A27] text-white border-[#2D5A27] hover:bg-[#22441D] shadow-lg shadow-[#2D5A27]/15" 
               : "bg-white/20 text-white border-white/40 hover:bg-white/30"
           }`}
         >

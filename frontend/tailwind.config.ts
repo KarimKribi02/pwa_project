@@ -12,15 +12,15 @@ const config: Config = {
         // Artisan Palette
         'cream': '#fcf9f3',
         'charcoal': '#1c1c18',
-        'forest': '#396632',   // Primary Button
-        'oak': '#7c5639',      // Accent
+        'forest': '#2D5A27',   // Primary Button
+        'oak': '#A67B5B',      // Accent
         'accent': '#e66d3e',
         'surface-low': '#f6f3ed',
         'surface-lowest': '#ffffff',
         'outline-variant': 'rgba(28, 28, 24, 0.15)',
         // Standard colors for compatibility
-        primary: '#396632',
-        secondary: '#7c5639',
+        primary: '#2D5A27',
+        secondary: '#A67B5B',
         surface: '#f6f3ed',
       },
       fontFamily: {

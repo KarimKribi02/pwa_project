@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Phone, 
@@ -7,10 +8,49 @@ import {
   MapPin, 
   Send, 
   MessageSquare,
-  ChevronRight
+  ChevronRight,
+  AlertCircle
 } from 'lucide-react';
+import { submitContact } from '@/services/api';
 
 export default function ContactPage() {
+  const [formData, setFormData] = useState({
+    nom: '',
+    email: '',
+    telephone: '',
+    objet: 'Demande de Devis',
+    message: ''
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.nom || !formData.email || !formData.objet || !formData.message) {
+      setError('Veuillez remplir tous les champs obligatoires.');
+      return;
+    }
+    setError('');
+    setSubmitting(true);
+    setSuccess(false);
+    try {
+      await submitContact(formData);
+      setSuccess(true);
+      setFormData({
+        nom: '',
+        email: '',
+        telephone: '',
+        objet: 'Demande de Devis',
+        message: ''
+      });
+    } catch (err: any) {
+      setError(err.message || 'Une erreur est survenue lors de l\'envoi de votre message.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-surface pt-32 pb-24 px-8">
       <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-20">
@@ -26,41 +66,97 @@ export default function ContactPage() {
             <p className="text-stone-500 font-light text-lg">Un devis, une question technique ou simplement une envie de sur-mesure ? Notre équipe vous répond sous 24h.</p>
           </div>
 
-          <form className="space-y-8 bg-white p-12 rounded-[3rem] shadow-xl border border-primary/5">
+          <form onSubmit={handleSubmit} className="space-y-8 bg-white p-12 rounded-[3rem] shadow-xl border border-primary/5">
+            {error && (
+              <div className="bg-rose-50 border border-rose-100 p-5 rounded-2xl flex items-start gap-3 text-rose-800 shadow-sm">
+                <AlertCircle className="shrink-0 mt-0.5" size={20} />
+                <p className="text-xs leading-relaxed font-medium">{error}</p>
+              </div>
+            )}
+            
+            {success && (
+              <div className="bg-emerald-50 border border-emerald-100 p-5 rounded-2xl flex items-start gap-3 text-emerald-800 shadow-sm">
+                <Send className="shrink-0 mt-0.5 text-emerald-600" size={20} />
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest mb-1">Message Envoyé</p>
+                  <p className="text-xs leading-relaxed font-medium">Votre message a été transmis avec succès. Nous vous répondrons sous 24h.</p>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
-                <label className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-2 block">Nom Complet</label>
-                <input type="text" placeholder="Jean Dupont" className="w-full bg-surface-low border-none rounded-xl px-6 py-4 outline-none focus:ring-2 focus:ring-primary/20 text-primary font-medium" />
+                <label className="text-[10px] font-extrabold text-stone-500 uppercase tracking-widest mb-1.5 block ml-1">Nom Complet *</label>
+                <input 
+                  type="text" 
+                  required
+                  placeholder="Jean Dupont" 
+                  value={formData.nom}
+                  onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
+                  className="w-full bg-[#fcf9f3] px-6 py-4 rounded-xl outline-none border border-stone-200/60 focus:border-[#2D5A27] focus:ring-2 focus:ring-[#2D5A27]/5 text-primary text-sm font-semibold transition-all" 
+                />
               </div>
               <div>
-                <label className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-2 block">Email</label>
-                <input type="email" placeholder="jean@example.com" className="w-full bg-surface-low border-none rounded-xl px-6 py-4 outline-none focus:ring-2 focus:ring-primary/20 text-primary font-medium" />
+                <label className="text-[10px] font-extrabold text-stone-500 uppercase tracking-widest mb-1.5 block ml-1">Email *</label>
+                <input 
+                  type="email" 
+                  required
+                  placeholder="jean@example.com" 
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full bg-[#fcf9f3] px-6 py-4 rounded-xl outline-none border border-stone-200/60 focus:border-[#2D5A27] focus:ring-2 focus:ring-[#2D5A27]/5 text-primary text-sm font-semibold transition-all" 
+                />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
-                <label className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-2 block">Téléphone</label>
-                <input type="tel" placeholder="+212 6... " className="w-full bg-surface-low border-none rounded-xl px-6 py-4 outline-none focus:ring-2 focus:ring-primary/20 text-primary font-medium" />
+                <label className="text-[10px] font-extrabold text-stone-500 uppercase tracking-widest mb-1.5 block ml-1">Téléphone</label>
+                <input 
+                  type="tel" 
+                  placeholder="+212 6... " 
+                  value={formData.telephone}
+                  onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
+                  className="w-full bg-[#fcf9f3] px-6 py-4 rounded-xl outline-none border border-stone-200/60 focus:border-[#2D5A27] focus:ring-2 focus:ring-[#2D5A27]/5 text-primary text-sm font-semibold transition-all" 
+                />
               </div>
               <div>
-                <label className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-2 block">Objet</label>
-                <select className="w-full bg-surface-low border-none rounded-xl px-6 py-4 outline-none focus:ring-2 focus:ring-primary/20 text-primary font-bold">
-                  <option>Demande de Devis</option>
-                  <option>Question Technique</option>
-                  <option>Suivi de Commande</option>
-                  <option>Autre</option>
-                </select>
+                <label className="text-[10px] font-extrabold text-stone-500 uppercase tracking-widest mb-1.5 block ml-1">Objet *</label>
+                <div className="relative">
+                  <select 
+                    value={formData.objet}
+                    onChange={(e) => setFormData({ ...formData, objet: e.target.value })}
+                    className="w-full bg-[#fcf9f3] px-6 py-4 rounded-xl outline-none border border-stone-200/60 focus:border-[#2D5A27] focus:ring-2 focus:ring-[#2D5A27]/5 text-primary text-sm font-semibold transition-all appearance-none cursor-pointer"
+                  >
+                    <option>Demande de Devis</option>
+                    <option>Question Technique</option>
+                    <option>Suivi de Commande</option>
+                    <option>Autre</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-stone-500">
+                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                  </div>
+                </div>
               </div>
             </div>
 
             <div>
-              <label className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-2 block">Message</label>
-              <textarea placeholder="Décrivez votre projet ici..." className="w-full bg-surface-low border-none rounded-xl px-6 py-4 outline-none focus:ring-2 focus:ring-primary/20 text-primary font-medium min-h-[150px] resize-none"></textarea>
+              <label className="text-[10px] font-extrabold text-stone-500 uppercase tracking-widest mb-1.5 block ml-1">Message *</label>
+              <textarea 
+                required
+                placeholder="Décrivez votre projet ici..." 
+                value={formData.message}
+                onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                className="w-full bg-[#fcf9f3] px-6 py-4 rounded-xl outline-none border border-stone-200/60 focus:border-[#2D5A27] focus:ring-2 focus:ring-[#2D5A27]/5 text-primary text-sm font-semibold transition-all min-h-[150px] resize-none"
+              ></textarea>
             </div>
 
-            <button className="w-full bg-primary text-white py-5 rounded-2xl font-bold flex items-center justify-center gap-3 shadow-xl shadow-primary/20 hover:brightness-110 transition-all">
-              ENVOYER LA DEMANDE <Send size={18} />
+            <button 
+              type="submit"
+              disabled={submitting}
+              className="w-full bg-primary text-white py-5 rounded-2xl font-bold flex items-center justify-center gap-3 shadow-xl shadow-primary/10 hover:bg-[#22441D] transition-all disabled:opacity-50 cursor-pointer"
+            >
+              {submitting ? 'ENVOI EN COURS...' : <><span className="uppercase">Envoyer la demande</span> <Send size={18} /></>}
             </button>
           </form>
         </motion.div>
@@ -106,7 +202,7 @@ export default function ContactPage() {
               </div>
             </div>
 
-            <button className="w-full mt-12 bg-secondary py-4 rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-black/10">
+            <button className="w-full mt-12 bg-secondary py-4 rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-black/10 cursor-pointer">
               OUVRIR DANS MAPS
             </button>
           </div>

@@ -17,21 +17,32 @@ model categories {
 }
 
 model commandes {
-  id           BigInt        @id @default(autoincrement())
+  id           BigInt            @id @default(autoincrement())
   client_id    BigInt?
-  prix_total   Decimal?      @db.Decimal(10, 2)
-  statut       String?       @db.VarChar(50)
+  codeSuivi    String?           @unique @map("code_suivi")
+  clientNom    String?           @db.VarChar(255)
+  clientTel    String?           @db.VarChar(100)
+  clientEmail  String?           @db.VarChar(255)
+  adresse      String?           @db.VarChar(255)
+  prix_total   Decimal?          @db.Decimal(10, 2)
+  statut       String?           @db.VarChar(50)
   note         String?
-  created_at   DateTime?     @default(now()) @db.Timestamp(6)
-  largeur      String?       @db.VarChar(100)
-  longueur     String?       @db.VarChar(100)
-  couleur      String?       @db.VarChar(100)
-  type_bois    String?       @db.VarChar(100)
-  quantite     Int?          @default(1)
-  produit_id   BigInt?
-  utilisateurs utilisateurs? @relation(fields: [client_id], references: [id], onUpdate: NoAction)
-  produits     produits?     @relation("ProduitCommande", fields: [produit_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_commandes_produits")
+  created_at   DateTime?         @default(now()) @db.Timestamp(6)
+  largeur      String?           @db.VarChar(100)
+  longueur     String?           @db.VarChar(100)
+  couleur      String?           @db.VarChar(100)
+  type_bois    String?           @db.VarChar(100)
+  items        ArticleCommande[]
   facture      facture[]
+}
+
+model ArticleCommande {
+  id          BigInt     @id @default(autoincrement())
+  commande_id BigInt?
+  produit_id  BigInt?
+  quantite    Int?       @default(1)
+  commande    commandes? @relation(fields: [commande_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  produit     produits?  @relation(fields: [produit_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model facture {
@@ -61,9 +72,9 @@ model produits {
   prix            Decimal?          @db.Decimal(10, 2)
   vedette         Boolean?          @default(false)
   created_at      DateTime?         @default(now()) @db.Timestamp(6)
-  commandes       commandes[]       @relation("ProduitCommande")
   categories      categories?       @relation(fields: [categorie_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   produits_images produits_images[]
+  ArticleCommande ArticleCommande[]
 }
 
 model produits_images {
@@ -76,14 +87,24 @@ model produits_images {
 }
 
 model utilisateurs {
-  id         BigInt      @id @default(autoincrement())
-  nom        String?     @db.VarChar(255)
-  email      String?     @unique @db.VarChar(255)
-  mot_passe  String?     @db.VarChar(255)
-  role       String?     @db.VarChar(50)
-  adresse    String?     @db.VarChar(255)
+  id         BigInt    @id @default(autoincrement())
+  nom        String?   @db.VarChar(255)
+  email      String?   @unique @db.VarChar(255)
+  mot_passe  String?   @db.VarChar(255)
+  role       String?   @db.VarChar(50)
+  adresse    String?   @db.VarChar(255)
   telephone  String?
-  created_at DateTime?   @default(now()) @db.Timestamp(6)
-  commandes  commandes[]
+  created_at DateTime? @default(now()) @db.Timestamp(6)
   factures   facture[]
+}
+
+model Contact {
+  id        BigInt   @id @default(autoincrement())
+  nom       String   @map("nom_complet")
+  email     String
+  telephone String?
+  objet     String   // e.g., "Demande de Devis", "Question Technique"
+  message   String   @db.Text
+  statut    String   @default("Non lu") // enum: "Non lu", "Lu", "Traité"
+  createdAt DateTime @default(now()) @map("created_at")
 }

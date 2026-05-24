@@ -169,7 +169,7 @@ export default function ProductDetail() {
                 {product.description}
               </p>
             </header>
-
+            
             <div className="bg-white p-8 md:p-10 rounded-[3rem] shadow-xl border border-primary/5 space-y-8">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                 <div className="space-y-4">
@@ -178,21 +178,21 @@ export default function ProductDetail() {
                   </div>
                   <div className="flex gap-4">
                     <div className="flex-1">
-                      <label className="text-[9px] text-stone-400 uppercase font-bold block mb-1">Largeur</label>
+                      <label className="text-[9px] text-stone-500 uppercase font-bold block mb-1.5 ml-1">Largeur</label>
                       <input 
                         type="number" 
                         value={width}
                         onChange={(e) => setWidth(Number(e.target.value))}
-                        className="w-full bg-surface-low border-b-2 border-primary/10 focus:border-secondary outline-none px-2 py-3 font-bold text-primary transition-all"
+                        className="w-full bg-[#fcf9f3] border border-stone-200/60 rounded-xl focus:border-[#2D5A27] focus:ring-2 focus:ring-[#2D5A27]/5 outline-none px-4 py-3 font-bold text-primary transition-all text-sm"
                       />
                     </div>
                     <div className="flex-1">
-                      <label className="text-[9px] text-stone-400 uppercase font-bold block mb-1">Longueur</label>
+                      <label className="text-[9px] text-stone-500 uppercase font-bold block mb-1.5 ml-1">Longueur</label>
                       <input 
                         type="number" 
                         value={length}
                         onChange={(e) => setLength(Number(e.target.value))}
-                        className="w-full bg-surface-low border-b-2 border-primary/10 focus:border-secondary outline-none px-2 py-3 font-bold text-primary transition-all"
+                        className="w-full bg-[#fcf9f3] border border-stone-200/60 rounded-xl focus:border-[#2D5A27] focus:ring-2 focus:ring-[#2D5A27]/5 outline-none px-4 py-3 font-bold text-primary transition-all text-sm"
                       />
                     </div>
                   </div>
@@ -202,15 +202,23 @@ export default function ProductDetail() {
                   <div className="flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-[0.2em]">
                     <Trees size={14} className="text-secondary" /> Essence de Bois
                   </div>
-                  <select 
-                    value={wood.id}
-                    onChange={(e) => setWood(WOOD_TYPES.find(w => w.id === e.target.value) || WOOD_TYPES[0])}
-                    className="w-full bg-surface-low border-b-2 border-primary/10 focus:border-secondary outline-none px-2 py-3 font-bold text-primary appearance-none cursor-pointer"
-                  >
+                  <div className="grid grid-cols-2 gap-3">
                     {WOOD_TYPES.map(w => (
-                      <option key={w.id} value={w.id}>{w.name}</option>
+                      <button
+                        key={w.id}
+                        type="button"
+                        onClick={() => setWood(w)}
+                        className={`text-left p-4 rounded-xl border-2 transition-all flex flex-col justify-between h-20 cursor-pointer ${
+                          wood.id === w.id
+                            ? 'border-secondary bg-secondary/5 text-primary scale-[1.02] shadow-sm'
+                            : 'border-stone-200/60 bg-transparent text-stone-500 hover:border-stone-300'
+                        }`}
+                      >
+                        <span className="text-[10px] font-extrabold uppercase tracking-widest">{w.name}</span>
+                        <span className="text-[9px] font-medium text-stone-400">Facteur: x{w.factor}</span>
+                      </button>
                     ))}
-                  </select>
+                  </div>
                 </div>
               </div>
 
@@ -218,19 +226,20 @@ export default function ProductDetail() {
                 <div className="flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-[0.2em]">
                   <Palette size={14} className="text-secondary" /> Finition & Protection
                 </div>
-                <div className="flex flex-wrap gap-4">
+                <div className="grid grid-cols-3 gap-3">
                   {FINISHES.map(f => (
                     <button
                       key={f.id}
+                      type="button"
                       onClick={() => setFinish(f)}
-                      className={`flex items-center gap-3 px-4 py-2 rounded-full border-2 transition-all ${
+                      className={`flex items-center justify-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${
                         finish.id === f.id 
-                          ? "border-secondary bg-secondary/5 text-primary scale-105" 
-                          : "border-gray-100 text-stone-400 hover:border-gray-200"
+                          ? "border-[#2D5A27] bg-[#2D5A27]/5 text-[#2D5A27] font-bold" 
+                          : "border-stone-200/60 text-stone-500 hover:border-stone-300"
                       }`}
                     >
-                      <div className="w-4 h-4 rounded-full" style={{ backgroundColor: f.color }} />
-                      <span className="text-[10px] font-bold uppercase tracking-widest">{f.name}</span>
+                      <div className="w-4 h-4 rounded-full shrink-0 border border-stone-200" style={{ backgroundColor: f.color }} />
+                      <span className="text-[10px] font-extrabold uppercase tracking-widest">{f.name}</span>
                     </button>
                   ))}
                 </div>
@@ -243,13 +252,13 @@ export default function ProductDetail() {
                   </div>
                   <div className="flex items-baseline gap-2">
                     <span className="text-4xl font-serif text-primary font-bold">{estimatedPrice.toLocaleString()}</span>
-                    <span className="text-lg font-serif text-primary italic">€</span>
+                    <span className="text-xs font-sans text-stone-500 font-bold uppercase">MAD</span>
                   </div>
                 </div>
                 
                 <button 
                   onClick={handleAddToCart}
-                  className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white px-10 py-5 rounded-sm font-bold flex items-center justify-center gap-3 transition-all shadow-2xl shadow-primary/20 group"
+                  className="w-full sm:w-auto bg-primary hover:bg-[#22441D] text-white px-10 py-5 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all shadow-xl shadow-primary/20 group cursor-pointer"
                 >
                   <ShoppingCart size={20} className="group-hover:-translate-y-1 transition-transform" />
                   <span>Commander Directement</span>

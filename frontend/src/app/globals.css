@@ -7,8 +7,8 @@
   --foreground: #1c1c18;
 
   /* Artisan Palette */
-  --color-primary: #396632;
-  --color-secondary: #7c5639;
+  --color-primary: #2D5A27;
+  --color-secondary: #A67B5B;
   --color-surface: #f6f3ed;
   --color-surface-low: #f6f3ed;
   --color-surface-lowest: #ffffff;
@@ -82,21 +82,20 @@ h1, h2, h3, h4, .font-serif {
 }
 
 .btn-primary {
-  @apply px-8 py-4 rounded-full font-bold transition-all transform active:scale-95 flex items-center justify-center gap-2 shadow-lg;
-  background-image: linear-gradient(135deg, #e66d3e 0%, #f97316 100%);
-  box-shadow: 0 25px 50px rgba(230, 109, 62, 0.2);
+  @apply px-8 py-4 rounded-full font-bold transition-all transform active:scale-95 flex items-center justify-center gap-2 shadow-lg cursor-pointer;
+  background-color: #2D5A27;
+  box-shadow: 0 15px 30px rgba(45, 90, 39, 0.15);
   color: white;
 }
 
 .btn-primary:hover {
   @apply -translate-y-0.5 shadow-xl brightness-110;
-  background-color: var(--color-secondary);
-  border-color: var(--color-secondary);
-  box-shadow: 0 30px 70px rgba(230, 109, 62, 0.4);
+  background-color: #22441D;
+  box-shadow: 0 20px 40px rgba(45, 90, 39, 0.25);
 }
 
 .btn-secondary {
-  @apply text-white border px-8 py-4 rounded-full font-bold transition-all;
+  @apply text-white border px-8 py-4 rounded-full font-bold transition-all cursor-pointer;
   backdrop-filter: blur(16px);
   background-color: rgba(255, 255, 255, 0.1);
   border-color: rgba(255, 255, 255, 0.2);
@@ -104,9 +103,9 @@ h1, h2, h3, h4, .font-serif {
 
 .btn-secondary:hover {
   @apply text-white shadow-lg;
-  background-color: #7c5639;
-  border-color: #7c5639;
-  box-shadow: 0 25px 50px rgba(124, 86, 57, 0.2);
+  background-color: #A67B5B;
+  border-color: #A67B5B;
+  box-shadow: 0 15px 30px rgba(166, 123, 91, 0.2);
 }
 
 .card-artisan {

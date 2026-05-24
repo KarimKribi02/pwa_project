@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { use } from "react";
+
 // --- Configuration Data ---
 const WOOD_TYPES = [
   { id: 'chene', name: 'Chêne Noble', multiplier: 1.8, desc: 'Robuste & Intemporel', color: '#8B5A2B' },
@@ -34,7 +36,8 @@ const FINISHES = [
 
 const BASE_PRICE = 1500;
 
-export default function DynamicProductDetail({ params }: { params: { id: string } }) {
+export default function DynamicProductDetail({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   // --- States ---
   const [length, setLength] = useState(180);
   const [width, setWidth] = useState(90);
@@ -58,7 +61,7 @@ export default function DynamicProductDetail({ params }: { params: { id: string 
   }, [length, width, selectedWood]);
 
   const product = {
-    id: params.id,
+    id: id,
     name: "L'Horizon : Table de Repas Directrice",
     category: "Collection Artisanale Marrakech",
     description: "Façonnée dans le respect des traditions de l'Atlas, cette pièce majeure allie la force du bois massif à la finesse du design contemporain. Chaque table est certifiée par notre atelier.",

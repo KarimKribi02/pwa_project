@@ -329,13 +329,13 @@ export default function CatalogPage() {
                 <div>
                   <h3 className="text-base font-serif font-bold text-gray-900 mb-3">Catégories</h3>
                   <ul className="space-y-2">
-                    {CATEGORIES.map(cat => (
-                      <li key={cat}>
+                    {categories.map(cat => (
+                      <li key={cat.id}>
                         <button 
-                          onClick={() => setActiveCategory(cat)}
-                          className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${activeCategory === cat ? "bg-[#2D5A27]/10 text-[#2D5A27] font-semibold" : "text-gray-600 hover:bg-gray-50"}`}
+                          onClick={() => setActiveCategory(cat.nom)}
+                          className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${activeCategory === cat.nom ? "bg-[#2D5A27]/10 text-[#2D5A27] font-semibold" : "text-gray-600 hover:bg-gray-50"}`}
                         >
-                          {cat}
+                          {cat.nom}
                         </button>
                       </li>
                     ))}
@@ -345,7 +345,7 @@ export default function CatalogPage() {
                 <div>
                   <h3 className="text-base font-serif font-bold text-gray-900 mb-3">Essence de Bois</h3>
                   <div className="flex flex-wrap gap-2">
-                    {WOOD_TYPES.map(wood => (
+                    {woodTypes.map(wood => (
                       <button 
                         key={wood} 
                         onClick={() => setActiveWood(wood)} 

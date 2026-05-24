@@ -11,19 +11,22 @@ export class UtilisateurController{
     @Get('/api/AllUtilisateurs')
     public async getAllUtilisateurs(){
         const utilisateurs = await this.prisma.utilisateurs.findMany({
-            include: {
-                commandes: true
-            },
             orderBy: { created_at: 'desc' }
         });
-        return utilisateurs.map(user => ({
-            ...user,
-            id: user.id.toString(),
-            commandes: user.commandes?.map(cmd => ({
-                ...cmd,
-                id: cmd.id.toString(),
-                utilisateur_id: cmd.client_id?.toString()
-            }))
+        
+        return Promise.all(utilisateurs.map(async (user) => {
+            const userCommandes = await this.prisma.commandes.findMany({
+                where: { client_id: user.id }
+            });
+            return {
+                ...user,
+                id: user.id.toString(),
+                commandes: userCommandes.map(cmd => ({
+                    ...cmd,
+                    id: cmd.id.toString(),
+                    utilisateur_id: cmd.client_id?.toString()
+                }))
+            };
         }));
     }
 
@@ -31,16 +34,18 @@ export class UtilisateurController{
     @Get('/api/SingleUtilisateur/:id')
     public async getUtilisateurById(@Param('id') id: string){
         const utilisateur = await this.prisma.utilisateurs.findUnique({
-            where: { id: BigInt(id) },
-            include: {
-                commandes: true
-            }
+            where: { id: BigInt(id) }
         });
         if(!utilisateur) throw new NotFoundException("Utilisateur not found");
+        
+        const userCommandes = await this.prisma.commandes.findMany({
+            where: { client_id: utilisateur.id }
+        });
+
         return {
             ...utilisateur,
             id: utilisateur.id.toString(),
-            commandes: utilisateur.commandes?.map(cmd => ({
+            commandes: userCommandes.map(cmd => ({
                 ...cmd,
                 id: cmd.id.toString(),
                 utilisateur_id: cmd.client_id?.toString()
@@ -50,25 +55,24 @@ export class UtilisateurController{
 
     // Afficher un utilisateur par email
     @Get('/api/UtilisateurByEmail/:email')
-public async getUtilisateurByEmail(@Param('email') email: string){
+    public async getUtilisateurByEmail(@Param('email') email: string){
+        const utilisateur = await this.prisma.utilisateurs.findUnique({
+            where: { email }
+        });
 
-    const utilisateur = await this.prisma.utilisateurs.findUnique({
-        where: { email }
-    });
+        if (!utilisateur) {
+            throw new NotFoundException("Utilisateur not found");
+        }
 
-    if (!utilisateur) {
-        throw new NotFoundException("Utilisateur not found");
+        return {
+            ...utilisateur,
+            id: utilisateur.id.toString(),
+            nom: utilisateur.nom,
+            email: utilisateur.email,
+            mot_passe: utilisateur.mot_passe,
+            role: utilisateur.role,
+        };
     }
-
-    return {
-        ...utilisateur,
-        id: utilisateur.id.toString(),
-        nom: utilisateur.nom,
-        email: utilisateur.email,
-        mot_passe: utilisateur.mot_passe,
-        role: utilisateur.role,
-    };
-}
 
     // Ajouter un utilisateur
     @Post('/api/addUtilisateur')
@@ -81,19 +85,12 @@ public async getUtilisateurByEmail(@Param('email') email: string){
                 role: body.role || 'user',
                 ...(body.adresse && { adresse: body.adresse }),
                 ...(body.telephone && { telephone: body.telephone })
-            },
-            include: {
-                commandes: true
             }
         });
         return {
             ...newUtilisateur,
             id: newUtilisateur.id.toString(),
-            commandes: newUtilisateur.commandes?.map(cmd => ({
-                ...cmd,
-                id: cmd.id.toString(),
-                utilisateur_id: cmd.client_id?.toString()
-            }))
+            commandes: []
         };
     }
 
@@ -108,15 +105,15 @@ public async getUtilisateurByEmail(@Param('email') email: string){
                     ...(body.email && { email: body.email }),
                     ...(body.mot_passe && { mot_passe: body.mot_passe }),
                     ...(body.role && { role: body.role })
-                },
-                include: {
-                    commandes: true
                 }
+            });
+            const userCommandes = await this.prisma.commandes.findMany({
+                where: { client_id: utilisateur.id }
             });
             return {
                 ...utilisateur,
                 id: utilisateur.id.toString(),
-                commandes: utilisateur.commandes?.map(cmd => ({
+                commandes: userCommandes.map(cmd => ({
                     ...cmd,
                     id: cmd.id.toString(),
                     utilisateur_id: cmd.client_id?.toString()

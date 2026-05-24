@@ -90,6 +90,12 @@ export async function getOrder(id: string) {
   return res.json();
 }
 
+export async function getCommandeStatus(code: string) {
+  const res = await fetch(`${API_BASE_URL}/commandes/suivi/${encodeURIComponent(code)}`);
+  if (!res.ok) throw new Error('Failed to track order');
+  return res.json();
+}
+
 export async function getAllOrders() {
   const res = await fetch(`${API_BASE_URL}/AllCommandes`);
   if (!res.ok) throw new Error('Failed to fetch all orders');
@@ -229,4 +235,44 @@ export async function addImage(produitId: string, imageFile: File, principale: b
   }
   return res.json();
 }
+
+// --- Contact Messages ---
+export async function submitContact(data: {
+  nom: string;
+  email: string;
+  telephone?: string;
+  objet: string;
+  message: string;
+}) {
+  const res = await fetch(`${API_BASE_URL}/contact`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => null);
+    throw new Error(errorData?.message || 'Une erreur est survenue lors de l\'envoi.');
+  }
+  return res.json();
+}
+
+export async function getContactMessages() {
+  const res = await fetch(`${API_BASE_URL}/admin/contact`);
+  if (!res.ok) throw new Error('Failed to fetch contact messages');
+  return res.json();
+}
+
+export async function updateContactStatus(id: string, statut: string) {
+  const res = await fetch(`${API_BASE_URL}/admin/contact/${id}/statut`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ statut }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => null);
+    throw new Error(errorData?.message || 'Failed to update message status');
+  }
+  return res.json();
+}
+
 

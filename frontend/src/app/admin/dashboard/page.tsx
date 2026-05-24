@@ -95,7 +95,7 @@ export default function DashboardPage() {
   const salesData = [40, 70, 45, 90, 65, 80, 50];
 
   return (
-    <div ref={reportRef} className="space-y-12 p-8 bg-white">
+    <div ref={reportRef} className="space-y-12 p-4 md:p-8 bg-transparent">
       {/* Welcome Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>

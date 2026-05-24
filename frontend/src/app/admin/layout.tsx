@@ -11,7 +11,8 @@ import {
   Menu,
   X,
   User,
-  Settings
+  Settings,
+  Mail
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
@@ -55,6 +56,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Produits', icon: <Package size={20} />, path: '/admin/products' },
     { name: 'Commandes', icon: <ShoppingCart size={20} />, path: '/admin/orders' },
     { name: 'Facturation', icon: <FileText size={20} />, path: '/admin/billing' },
+    { name: 'Messages', icon: <Mail size={20} />, path: '/admin/messages' },
   ];
 
   return (

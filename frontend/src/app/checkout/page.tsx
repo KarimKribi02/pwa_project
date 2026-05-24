@@ -78,22 +78,36 @@ export default function CheckoutPage() {
       }
 
       // 2. Create Order
-      const orderRes = await createOrder({
-        utilisateur_id: userId,
+      let width = order.customization.width?.toString() || '';
+      let length = order.customization.length?.toString() || '';
+      if ((!width || !length) && order.customization.dimensions) {
+        const match = order.customization.dimensions.match(/(\d+)\s*x\s*(\d+)/i);
+        if (match) {
+          width = match[1];
+          length = match[2];
+        }
+      }
+
+      const payload = {
+        id_utilisateur: userId ? userId.toString() : undefined,
+        clientNom: formData.name || null,
+        clientTel: formData.phone || null,
+        clientEmail: formData.email || null,
+        adresse: formData.address || null,
         statut: 'en attente',
-        note: formData.notes,
-        largeur: order.customization.width.toString(),
-        longueur: order.customization.length.toString(),
-        couleur: order.customization.finish,
-        type_bois: order.customization.wood
-      });
+        note: formData.notes || null,
+        largeur: width || null,
+        longueur: length || null,
+        couleur: order.customization.finish || null,
+        type_bois: order.customization.wood || null,
+        prix_total: order.price,
+        id_produit: order.product_id ? order.product_id.toString() : (order.id ? order.id.toString() : undefined),
+        quantite: 1
+      };
 
-      // 3. Create Order Item (if needed, but addCommande in backend doesn't seem to take articles yet)
-      // Actually, looking at commande.controller.ts, it doesn't take articles in addCommande.
-      // I should probably check if there's a separate article creation.
-      // But for now, the order itself has dimensions/wood/etc.
+      const orderRes = await createOrder(payload);
 
-      setTrackingCode(`MD-${orderRes.id}`);
+      setTrackingCode(orderRes.code_suivi || `MD-${orderRes.id}`);
       setIsSuccess(true);
       localStorage.removeItem('pendingOrder');
     } catch (err) {
@@ -138,76 +152,86 @@ export default function CheckoutPage() {
                   </h1>
                 </header>
 
-                <form onSubmit={handleSubmit} className="space-y-8">
+                 <form onSubmit={handleSubmit} className="space-y-8">
+                  {Object.keys(errors).length > 0 && (
+                    <div className="bg-amber-50/55 border border-amber-200 p-5 rounded-2xl flex items-start gap-3 text-amber-800 shadow-sm">
+                      <ShieldCheck className="shrink-0 mt-0.5 text-amber-600 animate-pulse" size={20} />
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-widest mb-1">Champs Requis Manquants</p>
+                        <p className="text-xs leading-relaxed font-medium">Veuillez remplir tous les champs marqués comme obligatoires pour finaliser votre commande artisanale.</p>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="bg-white p-10 rounded-[3rem] shadow-xl border border-primary/5 space-y-6">
-                    <div className="space-y-4">
-                      <label className="flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-[0.2em]">
-                        <User size={14} className="text-secondary" /> Nom Complet
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-extrabold text-stone-500 uppercase tracking-widest block ml-1">
+                        Nom Complet *
                       </label>
                       <input 
                         type="text" 
                         placeholder="Ex: Khalil Benjelloun"
-                        className={`w-full bg-surface-low px-6 py-4 rounded-2xl outline-none border-2 transition-all ${
-                          errors.name ? 'border-red-400 bg-red-50' : 'border-transparent focus:border-secondary'
+                        className={`w-full bg-[#fcf9f3] px-6 py-4 rounded-xl outline-none border transition-all text-sm font-semibold text-primary focus:ring-2 focus:ring-[#2D5A27]/5 focus:border-[#2D5A27] ${
+                          errors.name ? 'border-red-300 bg-red-50/30' : 'border-stone-200/60'
                         }`}
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       />
                     </div>
 
-                    <div className="space-y-4">
-                      <label className="flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-[0.2em]">
-                        <MessageSquare size={14} className="text-secondary" /> Email
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-extrabold text-stone-500 uppercase tracking-widest block ml-1">
+                        Email *
                       </label>
                       <input 
                         type="email" 
                         placeholder="khalil@example.com"
-                        className={`w-full bg-surface-low px-6 py-4 rounded-2xl outline-none border-2 transition-all ${
-                          errors.email ? 'border-red-400 bg-red-50' : 'border-transparent focus:border-secondary'
+                        className={`w-full bg-[#fcf9f3] px-6 py-4 rounded-xl outline-none border transition-all text-sm font-semibold text-primary focus:ring-2 focus:ring-[#2D5A27]/5 focus:border-[#2D5A27] ${
+                          errors.email ? 'border-red-300 bg-red-50/30' : 'border-stone-200/60'
                         }`}
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       />
                     </div>
 
-                    <div className="space-y-4">
-                      <label className="flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-[0.2em]">
-                        <Phone size={14} className="text-secondary" /> Téléphone (WhatsApp)
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-extrabold text-stone-500 uppercase tracking-widest block ml-1">
+                        Téléphone (WhatsApp) *
                       </label>
                       <input 
                         type="tel" 
                         placeholder="+212 6 XX XX XX XX"
-                        className={`w-full bg-surface-low px-6 py-4 rounded-2xl outline-none border-2 transition-all ${
-                          errors.phone ? 'border-red-400 bg-red-50' : 'border-transparent focus:border-secondary'
+                        className={`w-full bg-[#fcf9f3] px-6 py-4 rounded-xl outline-none border transition-all text-sm font-semibold text-primary focus:ring-2 focus:ring-[#2D5A27]/5 focus:border-[#2D5A27] ${
+                          errors.phone ? 'border-red-300 bg-red-50/30' : 'border-stone-200/60'
                         }`}
                         value={formData.phone}
                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                       />
                     </div>
 
-                    <div className="space-y-4">
-                      <label className="flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-[0.2em]">
-                        <MapPin size={14} className="text-secondary" /> Adresse de Livraison (Marrakech)
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-extrabold text-stone-500 uppercase tracking-widest block ml-1">
+                        Adresse de Livraison (Marrakech) *
                       </label>
                       <textarea 
                         rows={3}
                         placeholder="Quartier, N° Villa/Appartement..."
-                        className={`w-full bg-surface-low px-6 py-4 rounded-2xl outline-none border-2 transition-all resize-none ${
-                          errors.address ? 'border-red-400 bg-red-50' : 'border-transparent focus:border-secondary'
+                        className={`w-full bg-[#fcf9f3] px-6 py-4 rounded-xl outline-none border transition-all text-sm font-semibold text-primary focus:ring-2 focus:ring-[#2D5A27]/5 focus:border-[#2D5A27] resize-none ${
+                          errors.address ? 'border-red-300 bg-red-50/30' : 'border-stone-200/60'
                         }`}
                         value={formData.address}
                         onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                       />
                     </div>
 
-                    <div className="space-y-4">
-                      <label className="flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-[0.2em]">
-                        <MessageSquare size={14} className="text-secondary" /> Notes & Demandes Spéciales
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-extrabold text-stone-500 uppercase tracking-widest block ml-1">
+                        Notes & Demandes Spéciales
                       </label>
                       <textarea 
                         rows={2}
                         placeholder="Détails supplémentaires..."
-                        className="w-full bg-surface-low px-6 py-4 rounded-2xl outline-none border-2 border-transparent focus:border-secondary transition-all resize-none"
+                        className="w-full bg-[#fcf9f3] px-6 py-4 rounded-xl outline-none border border-stone-200/60 focus:border-[#2D5A27] focus:ring-2 focus:ring-[#2D5A27]/5 transition-all text-sm font-semibold text-primary resize-none"
                         value={formData.notes}
                         onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                       />
@@ -216,7 +240,7 @@ export default function CheckoutPage() {
 
                   <button 
                     disabled={loading}
-                    className="w-full bg-primary hover:bg-primary/90 text-white py-5 rounded-full font-bold flex items-center justify-center gap-4 transition-all shadow-2xl shadow-primary/20 disabled:opacity-50"
+                    className="w-full bg-primary hover:bg-[#22441D] text-white py-5 rounded-2xl font-bold flex items-center justify-center gap-4 transition-all shadow-xl shadow-primary/10 disabled:opacity-50 cursor-pointer"
                   >
                     {loading ? (
                       <span className="flex items-center gap-2">
