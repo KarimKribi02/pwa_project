@@ -3,13 +3,20 @@ import { Controller, Get, Post, Body, Param, NotFoundException, Put, Delete } fr
 import { PrismaService } from "src/prisma.service";
 import { AjouterCommandeDto } from "./dtos/ajouterCommande.dto";
 import { ModifierCommandeDto } from "./dtos/modifierCommande.dto";
+import { EmailService } from "src/email/email.service";
+import { Logger } from "@nestjs/common";
 
 @Controller({})
 export class CommandeController {
-    constructor(private prisma: PrismaService) {}
+    private readonly logger = new Logger(CommandeController.name);
+
+    constructor(
+        private prisma: PrismaService,
+        private readonly emailService: EmailService,
+    ) {}
 
     // Fonction utilitaire pour calculer le prix total
-private calculatePrixTotal(commande: any): string {
+    private calculatePrixTotal(commande: any): string {
         const produitPrix = commande.produits?.prix ? parseFloat(commande.produits.prix.toString()) : 0;
         const quantite = commande.quantite ?? 1;
         const total = produitPrix * quantite;
@@ -17,7 +24,7 @@ private calculatePrixTotal(commande: any): string {
     }
 
     // Fonction utilitaire pour formater la réponse commande
-private formatCommandeResponse(commande: any) {
+    private formatCommandeResponse(commande: any) {
         const utilisateurs = commande.utilisateurs;
         const factures = commande.facture || [];
         const prixTotal = this.calculatePrixTotal(commande);
@@ -299,7 +306,9 @@ if (!body.id_utilisateur || typeof body.id_utilisateur !== 'string' || body.id_u
                 throw new NotFoundException("Commande not found");
             }
 
+            const oldStatus = commande.statut;
             let newStatus: string;
+
             switch (body.action) {
                 case 'start':
                     if (commande.statut !== 'en attente') {
@@ -326,6 +335,39 @@ if (!body.id_utilisateur || typeof body.id_utilisateur !== 'string' || body.id_u
                     facture: true
                 }
             });
+
+            // Email uniquement quand on démarre (en attente -> en cours)
+            if (body.action === 'start' && oldStatus === 'en attente' && newStatus === 'en cours') {
+                const clientEmail = updatedCommande.utilisateurs?.email;
+
+                this.logger.log(
+                    `[ValidateCommande] Tentative email: action=${body.action} oldStatus=${oldStatus} newStatus=${newStatus} clientEmail=${clientEmail}`
+                );
+
+                if (clientEmail) {
+                    const prixTotal =
+                        updatedCommande.prix_total?.toString() ?? this.calculatePrixTotal(updatedCommande);
+
+                    try {
+                        await this.emailService.sendCommandeStatusEmail({
+                            to: clientEmail,
+                            commandeId: updatedCommande.id.toString(),
+                            prixTotal: prixTotal ?? null,
+                            statut: newStatus,
+                        });
+                    } catch (err) {
+                        this.logger.error(`[ValidateCommande] Erreur envoi email: ${String(err)}`);
+                    }
+                } else {
+                    this.logger.warn(
+                        `[ValidateCommande] Email client absent => aucun envoi (commande #${updatedCommande.id.toString()})`
+                    );
+                }
+            } else {
+                this.logger.log(
+                    `[ValidateCommande] Pas d'envoi email: action=${body.action} oldStatus=${oldStatus} newStatus=${newStatus}`
+                );
+            }
 
             return this.formatCommandeResponse(updatedCommande);
         } catch (error) {

@@ -29,15 +29,40 @@ export default function ProductsPage() {
     description: '',
     vedette: false
   });
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [mainImage, setMainImage] = useState<File | null>(null);
+  const [mainImagePreview, setMainImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [extraImages, setExtraImages] = useState<File[]>([]);
+  const [extraImagesPreviews, setExtraImagesPreviews] = useState<string[]>([]);
+  const extraFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Pour éviter les erreurs possibles: limiter la mémoire/URL
+  // (On ne révoque pas ici, mais on limite l'UI à 3.
+  // TODO: ajouter URL.revokeObjectURL si nécessaire)
+
+
 
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [editingProductImage, setEditingProductImage] = useState<File | null>(null);
   const [editingProductImagePreview, setEditingProductImagePreview] = useState<string | null>(null);
   const editFileInputRef = useRef<HTMLInputElement>(null);
+
+  // 3 images supplémentaires (non principales)
+  const [editingExtraImages, setEditingExtraImages] = useState<File[]>([]);
+  const [editingExtraImagesPreviews, setEditingExtraImagesPreviews] = useState<string[]>([]);
+  const handleEditingExtraImageChange = (idx: number, file: File | undefined) => {
+    if (!file) return;
+    const nextFiles = [...editingExtraImages];
+    nextFiles[idx] = file;
+    setEditingExtraImages(nextFiles.filter(Boolean).slice(0, 3));
+
+    const nextPreviews = [...editingExtraImagesPreviews];
+    nextPreviews[idx] = URL.createObjectURL(file);
+    setEditingExtraImagesPreviews(nextPreviews.filter(Boolean).slice(0, 3));
+  };
+
 
   const filteredProducts = products.filter((product) => {
     const matchesSearch = !searchTerm
@@ -75,12 +100,18 @@ export default function ProductsPage() {
     fetchProducts();
   }, []);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMainImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setSelectedImage(file);
-      setImagePreview(URL.createObjectURL(file));
+      setMainImage(file);
+      setMainImagePreview(URL.createObjectURL(file));
     }
+  };
+
+  const handleExtraImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    setExtraImages(files.slice(0, 3));
+    setExtraImagesPreviews(files.slice(0, 3).map((f) => URL.createObjectURL(f)));
   };
 
   const handleAddProduct = async (e: React.FormEvent) => {
@@ -100,28 +131,33 @@ export default function ProductsPage() {
 
       console.log('Product created:', createdProduct);
 
-      if (selectedImage && createdProduct.id) {
-        console.log('Adding image for product:', createdProduct.id, 'with file');
-        try {
-          await addImage(createdProduct.id, selectedImage, true);
-          console.log('Image added successfully');
-        } catch (imageError) {
-          console.error('Failed to add image:', imageError);
-          alert(`Produit créé mais erreur lors de l'ajout d'image: ${imageError.message}`);
-          // Continue to close the form and refresh
-        }
-      } else {
-        console.log('No image selected - selectedImage:', !!selectedImage, 'product id:', createdProduct.id);
+      if (!createdProduct?.id) {
+        throw new Error('Produit créé sans id');
+      }
+
+      if (!mainImage) {
+        alert('Veuillez sélectionner une image principale.');
+        return;
+      }
+
+      // 1) Image principale
+      await addImage(createdProduct.id, mainImage, true);
+
+      // 2) 3 images supplémentaires
+      for (const img of extraImages.slice(0, 3)) {
+        await addImage(createdProduct.id, img, false);
       }
 
       setShowAddForm(false);
       setNewProduct({ nom: '', categorie_id: '', prix: '', description: '', vedette: false });
-      setSelectedImage(null);
-      setImagePreview(null);
+      setMainImage(null);
+      setMainImagePreview(null);
+      setExtraImages([]);
+      setExtraImagesPreviews([]);
       fetchProducts();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to add product:", err);
-      alert(`Erreur lors de la création du produit: ${err.message}`);
+      alert(`Erreur lors de la création du produit: ${err?.message || err}`);
     }
   };
 
@@ -159,10 +195,24 @@ export default function ProductsPage() {
       description: product.description,
       vedette: product.vedette
     });
-    const mainImage = product.produits_images?.find((img: any) => img.principale)?.url_image 
-                      || product.produits_images?.[0]?.url_image;
+
+    const images = product.produits_images || [];
+    const mainImage = images.find((img: any) => img.principale)?.url_image 
+                      || images[0]?.url_image;
+
+    const extraUrls = images
+      .filter((img: any) => !img.principale)
+      .slice(0, 3)
+      .map((img: any) => img.url_image)
+      .filter(Boolean);
+
     setEditingProductImagePreview(mainImage || null);
     setEditingProductImage(null);
+
+    // Préremplir l’UI avec les URLs existantes des images supplémentaires
+    setEditingExtraImages([]);
+    setEditingExtraImagesPreviews([...extraUrls]);
+
     setShowEditForm(true);
   };
 
@@ -188,28 +238,36 @@ export default function ProductsPage() {
       });
       console.log('✅ Product updated:', updated);
 
+      // Image principale (si remplacée)
       if (editingProductImage) {
-        console.log('Updating image for product:', editingProduct.id);
         try {
-          const imgRes = await addImage(editingProduct.id, editingProductImage, true);
-          console.log('✅ Image updated successfully:', imgRes);
-          // Forcer le refresh de la liste + des previews
-          if (imgRes?.url_image) {
-            setEditingProductImagePreview(imgRes.url_image);
-          }
-        } catch (imageError) {
-          console.error('Failed to update image:', imageError);
-          alert(`Produit modifié mais erreur lors de la mise à jour d'image: ${imageError.message}`);
+          await addImage(editingProduct.id, editingProductImage, true);
+        } catch (imageError: any) {
+          console.error('Failed to update main image:', imageError);
+          alert(`Produit modifié mais erreur lors de la mise à jour d'image principale: ${imageError.message}`);
         }
       }
 
-      // Fermer la modale après avoir rafraîchi la liste (évite un affichage incomplet)
+      // 3 images supplémentaires (si sélectionnées)
+      for (const img of editingExtraImages.slice(0, 3)) {
+        if (!img) continue;
+        try {
+          await addImage(editingProduct.id, img, false);
+        } catch (imageError: any) {
+          console.error('Failed to add extra image:', imageError);
+          alert(`Produit modifié mais erreur lors de l'ajout d'une image supplémentaire: ${imageError.message}`);
+        }
+      }
+
+      // Rafraîchir
       await fetchProducts();
       setShowEditForm(false);
       setEditingProduct(null);
       setEditingProductImage(null);
       setEditingProductImagePreview(null);
-    } catch (err) {
+      setEditingExtraImages([]);
+      setEditingExtraImagesPreviews([]);
+    } catch (err: any) {
       console.error("Failed to update product:", err);
       alert(`Erreur lors de la modification du produit: ${err.message}`);
     }
@@ -362,9 +420,9 @@ export default function ProductsPage() {
                   onClick={() => fileInputRef.current?.click()}
                   className="h-48 rounded-3xl border-2 border-dashed border-primary/20 bg-white flex flex-col items-center justify-center gap-2 text-primary/40 group cursor-pointer hover:border-primary/40 transition-all overflow-hidden relative"
                 >
-                  {imagePreview ? (
+                  {mainImagePreview ? (
                     <>
-                      <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                      <img src={mainImagePreview} alt="Preview" className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <span className="bg-white/90 text-primary px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-lg">Changer l'image</span>
                       </div>
@@ -381,8 +439,49 @@ export default function ProductsPage() {
                   ref={fileInputRef} 
                   className="hidden" 
                   accept="image/*" 
-                  onChange={handleImageChange}
+                  onChange={handleMainImageChange}
                 />
+
+                {/* Extra images upload */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {[0,1,2].map((idx) => {
+                    const preview = extraImagesPreviews[idx];
+                    return (
+                      <div
+                        key={idx}
+                        className="h-32 rounded-3xl border-2 border-dashed border-primary/20 bg-white flex flex-col items-center justify-center gap-2 text-primary/40 group cursor-pointer hover:border-primary/40 transition-all overflow-hidden relative"
+                      >
+                        <label className="w-full h-full flex items-center justify-center cursor-pointer">
+                          <input
+                            type="file"
+                            className="hidden"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              const nextImages = [...extraImages];
+                              nextImages[idx] = file;
+                              setExtraImages(nextImages.filter(Boolean).slice(0,3));
+
+                              const url = URL.createObjectURL(file);
+                              const nextPreviews = [...extraImagesPreviews];
+                              nextPreviews[idx] = url;
+                              setExtraImagesPreviews(nextPreviews.filter(Boolean).slice(0,3));
+                            }}
+                          />
+                          {preview ? (
+                            <img src={preview} alt={`Extra image ${idx+1}`} className="w-full h-full object-cover" />
+                          ) : (
+                            <>
+                              <ImageIcon size={26} className="group-hover:scale-110 transition-transform" />
+                              <span className="text-[10px] font-bold uppercase tracking-widest">Image {idx+1}</span>
+                            </>
+                          )}
+                        </label>
+                      </div>
+                    );
+                  })}
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-4">
@@ -604,6 +703,39 @@ export default function ProductsPage() {
                   accept="image/*" 
                   onChange={handleEditImageChange}
                 />
+
+                {/* Extra images upload (modifier) */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {[0,1,2].map((idx) => {
+                    const preview = editingExtraImagesPreviews[idx];
+                    return (
+                      <div
+                        key={idx}
+                        className="h-32 rounded-3xl border-2 border-dashed border-primary/20 bg-white flex flex-col items-center justify-center gap-2 text-primary/40 group cursor-pointer hover:border-primary/40 transition-all overflow-hidden relative"
+                      >
+                        <label className="w-full h-full flex items-center justify-center cursor-pointer">
+                          <input
+                            type="file"
+                            className="hidden"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              handleEditingExtraImageChange(idx, file);
+                            }}
+                          />
+                          {preview ? (
+                            <img src={preview} alt={`Extra image ${idx+1}`} className="w-full h-full object-cover" />
+                          ) : (
+                            <>
+                              <ImageIcon size={26} className="group-hover:scale-110 transition-transform" />
+                              <span className="text-[10px] font-bold uppercase tracking-widest">Image {idx+1}</span>
+                            </>
+                          )}
+                        </label>
+                      </div>
+                    );
+                  })}
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-4">

@@ -13,8 +13,9 @@ import {
   User,
   Settings
 } from 'lucide-react';
-import { useState,useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { getUserByEmail } from '@/services/api';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -25,27 +26,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   
   
   useEffect(() => {
-  async function fetchUser() {
-    try {
-      const stored = localStorage.getItem("admin_user");
-      if (!stored) return;
+    async function fetchUser() {
+      try {
+        const stored = localStorage.getItem("admin_user");
+        if (!stored) return;
 
-      const userLocal = JSON.parse(stored);
+        const userLocal = JSON.parse(stored);
 
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/UtilisateurByEmail/${encodeURIComponent(userLocal.email)}`
-      );
+        const data = await getUserByEmail(userLocal.email);
 
-      const data = await res.json();
-
-      setUser(data);
-    } catch (err) {
-      console.error(err);
+        setUser(data);
+      } catch (err) {
+        console.error(err);
+      }
     }
-  }
 
-  fetchUser();
-}, []);
+    fetchUser();
+  }, []);
 
   // If we are on the login page, don't show the sidebar
   if (pathname === '/admin/login') {

@@ -472,80 +472,143 @@ export default function BillingPage() {
                 <X size={20} />
               </button>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-[0.65fr_0.35fr] gap-6 p-8">
-              <div className="space-y-6">
-                <div className="rounded-3xl border border-primary/5 bg-surface-low p-6">
-                  <div className="flex items-center justify-between gap-4 mb-6">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.2em] text-gray-400">Client</p>
-                      <p className="text-xl font-bold text-primary">{activeFacture.nomcomplete || activeFacture.utilisateurs?.nom}</p>
-                    </div>
-                    <span className="rounded-full bg-blue-50 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-blue-700">{activeFacture.statut || 'En attente'}</span>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-stone-600">
-                    <div>
-                      <p className="font-semibold text-secondary">Téléphone</p>
-                      <p>{activeFacture.telephone || activeFacture.utilisateurs?.telephone || '-'}</p>
-                    </div>
-                    <div>
-                      <p className="font-semibold text-secondary">Email</p>
-                      <p>{activeFacture.email || activeFacture.utilisateurs?.email || '-'}</p>
-                    </div>
-                    <div className="sm:col-span-2">
-                      <p className="font-semibold text-secondary">Adresse</p>
-                      <p>{activeFacture.adresse || activeFacture.utilisateurs?.adresse || '-'}</p>
-                    </div>
-                  </div>
-                </div>
 
-                <div className="rounded-3xl border border-primary/5 p-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-stone-600">
-                    <div>
-                      <p className="font-semibold text-secondary">Commande</p>
-                      <p>MD-{activeFacture.id_commande}</p>
+            {/* Scroller vertical unique pour pouvoir aller haut/bas dans la popup */}
+            <div className="p-8 max-h-[75vh] overflow-y-auto">
+              <div className="grid grid-cols-1 lg:grid-cols-[0.65fr_0.35fr] gap-6">
+                <div className="space-y-6">
+                  <div className="rounded-3xl border border-primary/5 bg-surface-low p-6">
+                    <div className="flex items-center justify-between gap-4 mb-6">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.2em] text-gray-400">Client</p>
+                        <p className="text-xl font-bold text-primary">{activeFacture.nomcomplete || activeFacture.utilisateurs?.nom}</p>
+                      </div>
+                      <span className="rounded-full bg-blue-50 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-blue-700">{activeFacture.statut || 'En attente'}</span>
                     </div>
-                    <div>
-                      <p className="font-semibold text-secondary">Date d'émission</p>
-                      <p>{formatDate(activeFacture.date_emission)}</p>
-                    </div>
-                    <div>
-                      <p className="font-semibold text-secondary">Date paiement</p>
-                      <p>{formatDate(activeFacture.date_paiement)}</p>
-                    </div>
-                    <div>
-                      <p className="font-semibold text-secondary">Montant</p>
-                      <p>{formatCurrency(activeFacture.montant_totale)} DH</p>
-                    </div>
-                  </div>
-                </div>
 
-                {activeFacture.commandes?.produits && (
-                  <div className="rounded-3xl border border-primary/5 p-6">
-                    <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-4">Produits associés</p>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between gap-4 rounded-3xl bg-surface-low p-4">
-                        <div>
-                          <p className="font-semibold text-primary">{activeFacture.commandes.produits.nom || 'Produit'}</p>
-                          <p className="text-sm text-stone-500">Quantité: {activeFacture.commandes.quantite || 1}</p>
-                        </div>
-                        <p className="font-bold text-primary">{activeFacture.commandes.produits.prix ? `${formatCurrency(activeFacture.commandes.produits.prix)} DH` : '0,00 DH'}</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-stone-600">
+                      <div>
+                        <p className="font-semibold text-secondary">Téléphone</p>
+                        <p>{activeFacture.telephone || activeFacture.utilisateurs?.telephone || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-secondary">Email</p>
+                        <p>{activeFacture.email || activeFacture.utilisateurs?.email || '-'}</p>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <p className="font-semibold text-secondary">Adresse</p>
+                        <p>{activeFacture.adresse || activeFacture.utilisateurs?.adresse || '-'}</p>
                       </div>
                     </div>
                   </div>
-                )}
-              </div>
 
-              <div className="rounded-3xl border border-primary/5 bg-surface-low p-6 h-fit space-y-6">
-                <div className="space-y-2">
-                  <p className="text-xs uppercase tracking-[0.2em] text-gray-400">Total facture</p>
-                  <p className="text-4xl font-serif text-primary">{formatCurrency(activeFacture.montant_totale)} DH</p>
+                  <div className="rounded-3xl border border-primary/5 p-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-stone-600">
+                      <div>
+                        <p className="font-semibold text-secondary">Commande</p>
+                        <p>MD-{activeFacture.id_commande}</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-secondary">Date d'émission</p>
+                        <p>{formatDate(activeFacture.date_emission)}</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-secondary">Date paiement</p>
+                        <p>{formatDate(activeFacture.date_paiement)}</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-secondary">Montant</p>
+                        <p>{formatCurrency(activeFacture.montant_totale)} DH</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Produits associés: fallback articles || produits */}
+                  {(() => {
+                    const productLines =
+                      activeFacture.commandes?.articles ||
+                      activeFacture.commandes?.produits ||
+                      [];
+
+                    const hasProducts = Array.isArray(productLines)
+                      ? productLines.length > 0
+                      : !!productLines;
+
+                    if (!hasProducts) {
+                      return (
+                        <div className="rounded-3xl border border-primary/5 p-6">
+                          <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-4">Produits associés</p>
+                          <p className="text-sm text-stone-500">Aucun produit associé à cette facture.</p>
+                        </div>
+                      );
+                    }
+
+                    // Si API renvoie un tableau d’articles/produits
+                    if (Array.isArray(productLines)) {
+                      return (
+                        <div className="rounded-3xl border border-primary/5 p-6">
+                          <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-4">Produits associés</p>
+                          <div className="space-y-4">
+                            {productLines.map((item: any, idx: number) => (
+                              <div key={idx} className="flex items-center justify-between gap-4 rounded-3xl bg-surface-low p-4">
+                                <div>
+                                  <p className="font-semibold text-primary">{item.nom || item.produit?.nom || item.produits?.nom || 'Produit'}</p>
+                                  <p className="text-sm text-stone-500">
+                                    Quantité: {item.quantite ?? item.quantite_commandes ?? item.qte ?? 1}
+                                  </p>
+                                </div>
+                                <p className="font-bold text-primary">
+                                  {item.prix
+                                    ? `${formatCurrency(item.prix)} DH`
+                                    : item.produit?.prix
+                                      ? `${formatCurrency(item.produit.prix)} DH`
+                                      : item.produits?.prix
+                                        ? `${formatCurrency(item.produits.prix)} DH`
+                                        : '0,00 DH'}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    // Si API renvoie un seul objet “produits”
+                    return (
+                      <div className="rounded-3xl border border-primary/5 p-6">
+                        <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-4">Produits associés</p>
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between gap-4 rounded-3xl bg-surface-low p-4">
+                            <div>
+                              <p className="font-semibold text-primary">{productLines.nom || productLines.produit?.nom || 'Produit'}</p>
+                              <p className="text-sm text-stone-500">Quantité: {productLines.quantite || 1}</p>
+                            </div>
+                            <p className="font-bold text-primary">
+                              {productLines.prix
+                                ? `${formatCurrency(productLines.prix)} DH`
+                                : productLines.produit?.prix
+                                  ? `${formatCurrency(productLines.produit.prix)} DH`
+                                  : '0,00 DH'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
-                <button
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-3xl bg-primary px-6 py-4 text-white font-bold transition hover:brightness-110"
-                  onClick={() => createPrintableInvoice(activeFacture)}
-                >
-                  <Printer size={18} /> Télécharger / imprimer
-                </button>
+
+                <div className="rounded-3xl border border-primary/5 bg-surface-low p-6 h-fit space-y-6">
+                  <div className="space-y-2">
+                    <p className="text-xs uppercase tracking-[0.2em] text-gray-400">Total facture</p>
+                    <p className="text-4xl font-serif text-primary">{formatCurrency(activeFacture.montant_totale)} DH</p>
+                  </div>
+                  <button
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-3xl bg-primary px-6 py-4 text-white font-bold transition hover:brightness-110"
+                    onClick={() => createPrintableInvoice(activeFacture)}
+                  >
+                    <Printer size={18} /> Télécharger / imprimer
+                  </button>
+                </div>
               </div>
             </div>
           </div>
