@@ -11,7 +11,8 @@ import {
 } from 'lucide-react';
 
 import { useState, useEffect, useRef } from 'react';
-import { getProducts, getAllOrders } from '@/services/api';
+import { getProducts, getAllOrders, getAllFactures, getContactMessages } from '@/services/api';
+
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import RecentOrders from './recent-orders';
@@ -21,15 +22,38 @@ export default function DashboardPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activities, setActivities] = useState<Array<{ id: string; text: string; createdAt: string }>>([]);
   const reportRef = useRef<HTMLDivElement>(null);
+
+
+  const formatRelativeTime = (iso?: string) => {
+    if (!iso) return '—';
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return '—';
+
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffHours < 1) return "il y a 0h";
+    if (diffHours < 24) return `il y a ${diffHours}h`;
+    if (diffDays === 1) return 'Hier';
+    if (diffDays < 7) return `il y a ${diffDays} jours`;
+
+    return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+  };
 
   useEffect(() => {
     async function fetchStats() {
       try {
-        const [productsData, ordersData] = await Promise.all([
+        const [productsData, ordersData, facturesData, messagesData] = await Promise.all([
           getProducts(),
-          getAllOrders()
+          getAllOrders(),
+          getAllFactures(),
+          getContactMessages(),
         ]);
+
 
         setProducts(productsData);
         setOrders(ordersData);
@@ -44,7 +68,37 @@ export default function DashboardPage() {
           { label: 'Chiffre d\'Affaires', value: `${(totalRevenue / 1000).toFixed(1)}K MAD`, icon: <TrendingUp /> },
           { label: 'En attente', value: pendingOrders.toString(), icon: <Clock /> },
         ]);
+
+        const normalizeCreatedAt = (obj: any) => {
+          return obj?.created_at || obj?.createdAt || obj?.date_emission || obj?.date_paiement || obj?.updatedAt || null;
+        };
+
+        const orderActivities = (Array.isArray(ordersData) ? ordersData : []).map((o: any) => ({
+          id: `order-${o.id ?? o.rawId ?? ''}-${normalizeCreatedAt(o)}`,
+          text: `Nouvelle commande (#${String(o.id ?? o.rawId ?? '').slice(0, 8)}) — ${o.statut || 'statut'}`,
+          createdAt: normalizeCreatedAt(o),
+        }));
+
+        const factureActivities = (Array.isArray(facturesData) ? facturesData : []).map((f: any) => ({
+          id: `facture-${f.id ?? f.rawId ?? ''}-${normalizeCreatedAt(f)}`,
+          text: `Facture ${f.numero_facture ? `#${f.numero_facture}` : ''} générée`,
+          createdAt: normalizeCreatedAt(f),
+        }));
+
+        const messageActivities = (Array.isArray(messagesData) ? messagesData : []).map((m: any) => ({
+          id: `message-${m.id ?? m.rawId ?? ''}-${normalizeCreatedAt(m)}`,
+          text: `Message de ${m.nom || 'un client'} — ${m.objet || 'Demande'}`,
+          createdAt: normalizeCreatedAt(m),
+        }));
+
+        const merged = [...orderActivities, ...factureActivities, ...messageActivities]
+          .filter((a) => a.createdAt)
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .slice(0, 4);
+
+        setActivities(merged);
       } catch (error) {
+
         console.error("Failed to fetch dashboard stats:", error);
       } finally {
         setLoading(false);
@@ -173,21 +227,21 @@ export default function DashboardPage() {
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16" />
           <h3 className="text-xl font-serif mb-8 relative z-10">Activité Récente</h3>
           <div className="space-y-6 relative z-10">
-            {[
-              { text: 'Nouvelle commande de Marie Dupont', time: 'il y a 2h' },
-              { text: 'Produit "Table Chêne" ajouté', time: 'il y a 5h' },
-              { text: 'Facture #442 générée', time: 'Hier' },
-              { text: 'Mise à jour des stocks effectuée', time: '2 jours' },
-            ].map((activity, i) => (
-              <div key={i} className="flex gap-4 items-start">
-                <div className="w-2 h-2 rounded-full bg-secondary mt-1.5 shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-white/90 leading-snug">{activity.text}</p>
-                  <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mt-1">{activity.time}</p>
+            {activities.length === 0 ? (
+              <div className="text-white/60 text-sm">Aucune activité récente pour le moment.</div>
+            ) : (
+              activities.map((activity) => (
+                <div key={activity.id} className="flex gap-4 items-start">
+                  <div className="w-2 h-2 rounded-full bg-secondary mt-1.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-white/90 leading-snug">{activity.text}</p>
+                    <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mt-1">{formatRelativeTime(activity.createdAt)}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
+
           <button className="w-full mt-12 bg-white/10 hover:bg-white/20 border border-white/20 py-3 rounded-xl text-xs font-bold tracking-widest transition-all">
             VOIR TOUT LE LOG
           </button>

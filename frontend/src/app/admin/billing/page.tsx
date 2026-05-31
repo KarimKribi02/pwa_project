@@ -333,10 +333,11 @@ export default function BillingPage() {
                 <X size={20} />
               </button>
             </div>
-            <div className="p-8">
+            <div className="p-8 max-h-[75vh] overflow-y-auto">
               <form className="space-y-5" onSubmit={(event) => {
                 handleCreateInvoice(event);
               }}>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <label className="space-y-2">
                     <span className="text-sm font-medium text-secondary">Numéro de commande</span>

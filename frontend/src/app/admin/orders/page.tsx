@@ -147,6 +147,7 @@ export default function OrdersPage() {
         </div>
       </div>
 
+
       {/* Orders Table */}
       <div className="bg-white rounded-3xl border border-primary/5 shadow-sm overflow-hidden">
         {loading ? (
@@ -191,33 +192,46 @@ export default function OrdersPage() {
                       <span className="text-stone-600">{order.utilisateurs?.telephone || 'Non renseigné'}</span>
                     </td>
                     <td>{order.produits?.nom}</td>
-                    <td>{order.quantite}</td>
+                    <td className="px-6 py-4 text-center">{order.quantite}</td>
+
                     <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${getStatusColor(order.statut)}`}>
-                        {order.statut}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${getStatusColor(order.statut)}`}>
+                          {order.statut}
+                        </span>
+
+                        {(order.statut === 'en attente' || order.statut === 'en cours') ? (
+                          <label className="inline-flex items-center cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked
+                              onChange={() => handleValidate(order.id, order.statut)}
+                              disabled={validating === order.id}
+                              className="w-5 h-5 accent-primary"
+                              title={order.statut === 'en attente' ? 'Démarrer la commande' : 'Terminer la commande'}
+                            />
+
+
+                          </label>
+                        ) : (
+                          <label
+                            className="inline-flex items-center opacity-60 cursor-not-allowed"
+                            title="Commande terminée"
+                          >
+                            <input type="checkbox" checked={false} disabled className="w-5 h-5 accent-primary" />
+
+
+                          </label>
+                        )}
+
+
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <span className="font-bold text-primary">{order.prix_total ? `${order.prix_total} DH` : 'N/A'}</span>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-center gap-2">
-                        {/* Validate Button */}
-                        {(order.statut === 'en attente' || order.statut === 'en cours') && (
-                          <button 
-                            onClick={() => handleValidate(order.id, order.statut)}
-                            disabled={validating === order.id}
-                            className="p-2 bg-green-600 text-white rounded-lg hover:brightness-110 transition-all disabled:opacity-50"
-                            title={order.statut === 'en attente' ? 'Démarrer la commande' : 'Terminer la commande'}
-                          >
-                            {validating === order.id ? (
-                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            ) : (
-                              <CheckCircle size={16} />
-                            )}
-                          </button>
-                        )}
-
                         {/* Delete Button */}
                         <button 
                           onClick={() => requestDelete(order.id)}
@@ -228,6 +242,7 @@ export default function OrdersPage() {
                         </button>
                       </div>
                     </td>
+
                   </tr>
                 ))}
               </tbody>
