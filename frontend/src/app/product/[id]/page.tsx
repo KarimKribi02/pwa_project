@@ -17,6 +17,7 @@ import {
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { getProduct } from '@/services/api';
+import { useCartSync } from '@/services/useCartSync';
 
 const WOOD_TYPES = [
   { id: 'chene', name: 'Chêne Blond', factor: 1.2 },
@@ -34,6 +35,7 @@ const FINISHES = [
 export default function ProductDetail() {
   const params = useParams();
   const router = useRouter();
+  const { addToCart } = useCartSync();
   
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -71,11 +73,12 @@ export default function ProductDetail() {
     setEstimatedPrice(Math.round(newPrice));
   }, [width, length, wood, product]);
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     const orderData = {
-      product_id: product.id,
+      product_id: Number(product.id),
       product_name: product.nom,
       price: estimatedPrice,
+      quantity: 1,
       customization: {
         dimensions: `${width}x${length} cm`,
         width,
@@ -85,6 +88,8 @@ export default function ProductDetail() {
       },
       image: product.produits_images?.[0]?.url_image || "/product_door.png"
     };
+    
+    await addToCart(orderData);
     localStorage.setItem('pendingOrder', JSON.stringify(orderData));
     router.push('/checkout');
   };

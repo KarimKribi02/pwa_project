@@ -6,6 +6,8 @@ import { usePathname } from 'next/navigation';
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
   const pathname = usePathname();
   const isHome = pathname === '/';
 
@@ -14,8 +16,43 @@ export default function Navbar() {
       setScrolled(window.scrollY > 50);
     };
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+
+    // Check if the app is running in standalone mode (installed app context)
+    const checkStandalone = () => {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+      setIsInstalled(!!isStandalone);
+    };
+    checkStandalone();
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setIsInstalled(false);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    const handleAppInstalled = () => {
+      setDeferredPrompt(null);
+      setIsInstalled(true);
+    };
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
   }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setIsInstalled(true);
+    }
+    setDeferredPrompt(null);
+  };
 
   // Hide Navbar on Admin pages
   if (pathname.startsWith('/admin')) {
@@ -34,13 +71,11 @@ export default function Navbar() {
       }`}
     >
       <Link href="/" className="flex items-center gap-2 group cursor-pointer">
-        <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center backdrop-blur-sm border transition-all duration-300 ${
-          isOpaque
-            ? "bg-primary text-white border-primary/20" 
-            : "bg-white/20 text-white border-white/30"
-        } group-hover:rotate-6`}>
-          <span className="font-serif text-xl md:text-2xl">M</span>
-        </div>
+        <img 
+          src="/logom.png" 
+          alt="Menuiserie Digitale" 
+          className="w-8 h-8 md:w-10 md:h-10 object-contain rounded-lg transition-transform duration-300 group-hover:rotate-6"
+        />
         <span className={`font-serif text-lg md:text-xl tracking-tight hidden sm:block transition-colors duration-300 ${
           isOpaque ? "text-primary font-bold" : "text-white"
         }`}>
@@ -57,7 +92,24 @@ export default function Navbar() {
         <Link href="/contact" className="hover:text-secondary transition-colors">Contact</Link>
       </nav>
  
-      <div className="flex items-center">
+      <div className="flex items-center gap-3">
+        {deferredPrompt && !isInstalled && (
+          <button 
+            onClick={handleInstallClick}
+            className={`px-4 py-2 text-[10px] uppercase font-bold tracking-widest transition-all rounded-full border flex items-center gap-2 ${
+              isOpaque
+                ? "bg-transparent text-[#2D5A27] border-[#2D5A27] hover:bg-[#2D5A27]/5" 
+                : "bg-white/10 text-white border-white/30 hover:bg-white/20"
+            }`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Installer
+          </button>
+        )}
         <Link 
           href="/admin/login"
           className={`px-6 py-2 text-[10px] uppercase font-bold tracking-widest transition-all rounded-full border ${

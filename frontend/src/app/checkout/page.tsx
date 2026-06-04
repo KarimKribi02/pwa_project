@@ -13,15 +13,19 @@ import {
   CheckCircle2,
   Copy,
   ArrowRight,
-  MessageSquare
+  MessageSquare,
+  WifiOff
 } from 'lucide-react';
 import { createOrder, getUserByEmail } from '@/services/api';
 import Link from 'next/link';
+import { useCartSync } from '@/services/useCartSync';
 
 export default function CheckoutPage() {
+  const { cartItems, queueOfflineOrder, clearCart } = useCartSync();
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isOfflineSuccess, setIsOfflineSuccess] = useState(false);
   const [trackingCode, setTrackingCode] = useState('');
   
   const [formData, setFormData] = useState({
@@ -35,11 +39,29 @@ export default function CheckoutPage() {
   const [errors, setErrors] = useState<any>({});
 
   useEffect(() => {
-    const savedOrder = localStorage.getItem('pendingOrder');
-    if (savedOrder) {
-      setOrder(JSON.parse(savedOrder));
+    if (cartItems.length > 0) {
+      const latestItem = cartItems[cartItems.length - 1];
+      setOrder({
+        product_id: latestItem.product_id,
+        product: latestItem.product_name,
+        price: latestItem.price,
+        customization: latestItem.customization,
+        image: latestItem.image
+      });
+    } else {
+      const savedOrder = localStorage.getItem('pendingOrder');
+      if (savedOrder) {
+        const parsed = JSON.parse(savedOrder);
+        setOrder({
+          product_id: parsed.product_id,
+          product: parsed.product_name,
+          price: parsed.price,
+          customization: parsed.customization,
+          image: parsed.image
+        });
+      }
     }
-  }, []);
+  }, [cartItems]);
 
   const validate = () => {
     const newErrors: any = {};
@@ -56,8 +78,55 @@ export default function CheckoutPage() {
     if (!validate()) return;
 
     setLoading(true);
+
+    let width = order.customization?.width?.toString() || '';
+    let length = order.customization?.length?.toString() || '';
+    if ((!width || !length) && order.customization?.dimensions) {
+      const match = order.customization.dimensions.match(/(\d+)\s*x\s*(\d+)/i);
+      if (match) {
+        width = match[1];
+        length = match[2];
+      }
+    }
+
+    // If offline, store in Dexie queue and show success screen directly
+    if (!navigator.onLine) {
+      try {
+        const payload = {
+          id_utilisateur: undefined,
+          clientNom: formData.name || null,
+          clientTel: formData.phone || null,
+          clientEmail: formData.email || null,
+          adresse: formData.address || null,
+          statut: 'en attente',
+          note: formData.notes || null,
+          largeur: width || null,
+          longueur: length || null,
+          couleur: order.customization?.finish || null,
+          type_bois: order.customization?.wood || null,
+          prix_total: order.price,
+          id_produit: order.product_id ? order.product_id.toString() : (order.id ? order.id.toString() : ''),
+          quantite: 1
+        };
+
+        const pendingId = await queueOfflineOrder(payload);
+        setTrackingCode(`MD-PENDING-${pendingId}`);
+        setIsOfflineSuccess(true);
+        setIsSuccess(true);
+        
+        await clearCart();
+        localStorage.removeItem('pendingOrder');
+      } catch (err) {
+        console.error("Offline order queueing failed:", err);
+        alert("Une erreur est survenue lors de la mise en attente de votre commande.");
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     try {
-      // 1. Get or Create User
+      // 1. Get or Create User (Online Flow)
       let userId;
       try {
         const user = await getUserByEmail(formData.email);
@@ -77,17 +146,6 @@ export default function CheckoutPage() {
         userId = newUser.id;
       }
 
-      // 2. Create Order
-      let width = order.customization.width?.toString() || '';
-      let length = order.customization.length?.toString() || '';
-      if ((!width || !length) && order.customization.dimensions) {
-        const match = order.customization.dimensions.match(/(\d+)\s*x\s*(\d+)/i);
-        if (match) {
-          width = match[1];
-          length = match[2];
-        }
-      }
-
       const payload = {
         id_utilisateur: userId ? userId.toString() : undefined,
         clientNom: formData.name || null,
@@ -98,8 +156,8 @@ export default function CheckoutPage() {
         note: formData.notes || null,
         largeur: width || null,
         longueur: length || null,
-        couleur: order.customization.finish || null,
-        type_bois: order.customization.wood || null,
+        couleur: order.customization?.finish || null,
+        type_bois: order.customization?.wood || null,
         prix_total: order.price,
         id_produit: order.product_id ? order.product_id.toString() : (order.id ? order.id.toString() : undefined),
         quantite: 1
@@ -109,6 +167,8 @@ export default function CheckoutPage() {
 
       setTrackingCode(orderRes.code_suivi || `MD-${orderRes.id}`);
       setIsSuccess(true);
+      
+      await clearCart();
       localStorage.removeItem('pendingOrder');
     } catch (err) {
       console.error("Order submission failed:", err);
@@ -337,10 +397,25 @@ export default function CheckoutPage() {
               <CheckCircle2 size={48} />
             </div>
             <h2 className="text-4xl md:text-5xl font-serif text-primary mb-6 italic">Félicitations !</h2>
-            <p className="text-stone-500 mb-12 leading-relaxed">
-              Votre commande a été reçue avec succès par nos artisans. <br />
-              Un conseiller vous contactera sous peu pour finaliser les détails techniques.
-            </p>
+            
+            {isOfflineSuccess ? (
+              <div className="max-w-md mx-auto bg-[#fdfaf3] border border-amber-200/50 p-6 rounded-[2rem] text-stone-700 text-left mb-10 shadow-sm flex items-start gap-4">
+                <div className="p-3 bg-amber-500/10 rounded-2xl shrink-0 text-amber-600">
+                  <WifiOff size={20} />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-[10px] font-extrabold uppercase tracking-widest text-primary">En attente de connexion</h4>
+                  <p className="text-[11px] leading-relaxed font-medium text-stone-500">
+                    Votre commande a été enregistrée en toute sécurité en local. Elle sera automatiquement envoyée à l'Atelier dès que vous serez connecté au réseau.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-stone-500 mb-12 leading-relaxed text-sm">
+                Votre commande a été reçue avec succès par nos artisans. <br />
+                Un conseiller vous contactera sous peu pour finaliser les détails techniques.
+              </p>
+            )}
 
             <div className="bg-white p-10 rounded-[3rem] shadow-2xl border-2 border-secondary/20 relative overflow-hidden mb-12">
               <div className="absolute top-0 inset-x-0 h-1 bg-secondary" />

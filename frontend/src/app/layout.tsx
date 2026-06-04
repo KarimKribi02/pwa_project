@@ -23,6 +23,10 @@ export const metadata: Metadata = {
   title: "Menuiserie Digitale | The Modern Atelier",
   description: "Artisan menuisier d'exception à Marrakech. L'excellence du bois sur mesure.",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/logom.png",
+    apple: "/logom.png",
+  },
 };
 
 export const viewport: Viewport = {
@@ -32,6 +36,7 @@ export const viewport: Viewport = {
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ScrollToTop from "@/components/ScrollToTop";
+import { ConnectivityProvider } from "@/components/ConnectivityProvider";
 
 export default function RootLayout({
   children,
@@ -41,18 +46,21 @@ export default function RootLayout({
   return (
     <html lang="fr" className={`${notoSerif.variable} ${inter.variable} ${workSans.variable}`}>
       <body className="antialiased bg-surface text-on-surface min-h-screen flex flex-col font-sans selection:bg-primary/20">
-        <ScrollToTop />
-        <Navbar />
+        <ConnectivityProvider>
+          <ScrollToTop />
+          <Navbar />
 
-        <main className="flex-1">
-          {children}
-        </main>
+          <main className="flex-1">
+            {children}
+          </main>
 
-        <Footer />
+          <Footer />
+        </ConnectivityProvider>
       </body>
     </html>
   );
 }
+
 
 
 
