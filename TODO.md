@@ -1,15 +1,13 @@
-# TODO
+m# TODO - Suivi page design enhancement
 
-- [ ] Mettre à jour `frontend/src/app/admin/orders/page.tsx` :
-  - [x] Dans la colonne **Statut**, remplacer le badge simple par un badge + checkbox.
-  - [x] Checkbox active si `order.statut` est `en attente` ou `en cours`.
-  - [x] Au changement (onChange), appeler `handleValidate(order.id, order.statut)` pour faire avancer :
-    - `en attente` -> `en cours`
-    - `en cours` -> `terminer`
-  - [x] Après validation, laisser le backend renvoyer le statut mis à jour via `setOrders`.
-  - [x] Retirer la duplication du bouton Validate de la colonne **Actions** (garder seulement Delete dans Actions).
-- [ ] Vérifier le lint/build frontend.
-- [ ] Tester manuellement la page Admin Orders (cocher en attente puis en cours).
+## Plan (level 2 - Medium)
+- [x] Improve typography hierarchy and spacing in the Stepper card (titles/labels, progress line)
+- [x] Make the progress line width/height calculations safer (avoid NaN when statusSteps.length-1 is 0) and improve transition
+- [x] Refine quick-link lists (pending/recent) hover/active states for better visual feedback
+- [x] Polish the main detail cards: section headers, borders/shadows consistency, and minor alignment fixes
+- [x] Polish the sidebar CTA card (client info) spacing and typography
+- [x] Run lint/build check (if available) / ensure TypeScript compiles
+
 
 
 

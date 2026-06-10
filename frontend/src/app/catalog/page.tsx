@@ -4,12 +4,14 @@ import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { Filter, X, ChevronRight, ShoppingBag, ChevronDown, Star, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getProducts, getCategories } from "@/services/api";
+import { loadProductsWithRevalidate, loadCategoriesWithRevalidate } from "@/services/catalogSync";
+import { WifiOff } from "lucide-react";
 
 export default function CatalogPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [offlineEmpty, setOfflineEmpty] = useState(false);
   const [activeCategory, setActiveCategory] = useState("Tous");
   const [activeWood, setActiveWood] = useState("Tous");
   const [searchQuery, setSearchQuery] = useState("");
@@ -20,12 +22,12 @@ export default function CatalogPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [productsData, categoriesData] = await Promise.all([
-          getProducts(),
-          getCategories()
+        const [productsResult, categoriesResult] = await Promise.all([
+          loadProductsWithRevalidate(setProducts),
+          loadCategoriesWithRevalidate(),
         ]);
-        setProducts(productsData);
-        setCategories([{ id: "Tous", nom: "Tous" }, ...categoriesData]);
+        setCategories([{ id: "Tous", nom: "Tous" }, ...categoriesResult.data]);
+        setOfflineEmpty(productsResult.isEmpty && categoriesResult.isEmpty);
       } catch (error) {
         console.error("Failed to fetch data:", error);
       } finally {
@@ -61,6 +63,20 @@ export default function CatalogPage() {
 
     return filtered;
   }, [products, activeCategory, searchQuery, maxPrice, sortBy]);
+
+  if (!loading && offlineEmpty) {
+    return (
+      <div className="min-h-screen bg-[#fcfaf7] pt-32 pb-20 flex items-center justify-center px-6">
+        <div className="max-w-md text-center space-y-6">
+          <WifiOff size={48} className="mx-auto text-amber-600" />
+          <h1 className="text-2xl font-serif text-primary italic">Catalogue non disponible</h1>
+          <p className="text-sm text-stone-500 leading-relaxed">
+            Connectez-vous une fois à internet pour télécharger le catalogue. Ensuite, vous pourrez le consulter hors ligne.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#fcfaf7] pt-28 pb-20">

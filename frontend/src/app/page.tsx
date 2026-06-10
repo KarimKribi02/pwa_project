@@ -7,7 +7,10 @@ import {
   Truck, ShieldCheck, Award, Headset, ShoppingCart, CheckCircle, Users, Star, Calendar 
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { getFeaturedProducts, getCategories } from "@/services/api";
+import {
+  loadFeaturedWithRevalidate,
+  loadCategoriesWithRevalidate,
+} from "@/services/catalogSync";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState("Portes");
@@ -18,12 +21,14 @@ export default function Home() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [productsData, categoriesData] = await Promise.all([
-          getFeaturedProducts(),
-          getCategories()
+        const [productsResult, categoriesResult] = await Promise.all([
+          loadFeaturedWithRevalidate(setFeaturedProducts),
+          loadCategoriesWithRevalidate(),
         ]);
-        setFeaturedProducts(productsData);
-        setCategories(categoriesData);
+        setCategories(categoriesResult.data);
+        if (productsResult.isEmpty) {
+          setFeaturedProducts([]);
+        }
       } catch (error) {
         console.error("Failed to fetch data:", error);
       } finally {

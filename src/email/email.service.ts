@@ -1,25 +1,53 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { MailerService } from '@nestjs-modules/mailer';
 
+export interface EmailNotificationResult {
+  sent: boolean;
+  message: string;
+}
+
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
 
   constructor(private readonly mailer: MailerService) {}
 
+  private maskEmail(email: string): string {
+    const [local, domain] = email.split('@');
+    if (!local || !domain) return '[email masqué]';
+    const visible = local.length <= 2 ? '*' : `${local[0]}***`;
+    return `${visible}@${domain}`;
+  }
+
+  private getTrackingUrl(trackingCode: string): string {
+    const base =
+      process.env.FRONTEND_URL ||
+      process.env.NEXT_PUBLIC_FRONTEND_URL ||
+      'http://localhost:3000';
+    return `${base.replace(/\/$/, '')}/suivi?code=${encodeURIComponent(trackingCode)}`;
+  }
+
+  private smtpErrorMessage(kind: 'confirmation' | 'status'): string {
+    if (kind === 'confirmation') {
+      return "L'email de confirmation n'a pas pu être envoyé (erreur SMTP). Votre commande est bien enregistrée — conservez votre code de suivi.";
+    }
+    return "L'email de notification de statut n'a pas pu être envoyé (erreur SMTP). Le statut de la commande a bien été mis à jour.";
+  }
+
   async sendOrderConfirmation(
     clientEmail: string | null | undefined,
     clientNom: string | null | undefined,
-    codeSuivi: string | null | undefined
-  ) {
+    codeSuivi: string | null | undefined,
+  ): Promise<EmailNotificationResult> {
     if (!clientEmail) {
-      this.logger.warn(`[sendOrderConfirmation] Aucun email défini pour le client ${clientNom}`);
-      return;
+      const message = 'Aucune adresse email fournie — confirmation non envoyée.';
+      this.logger.warn(`[sendOrderConfirmation] ${message}`);
+      return { sent: false, message };
     }
 
     const trackingCode = codeSuivi || 'N/A';
     const subject = `Confirmation de votre commande - Menuiserie Digitale`;
-    const trackingUrl = `http://localhost:3000/suivi?code=${trackingCode}`;
+    const trackingUrl = this.getTrackingUrl(trackingCode);
 
     const html = `
       <div style="font-family: 'Noto Serif', Georgia, serif; line-height: 1.6; color: #1c1c18; max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #fcf9f3; border: 1px solid rgba(45, 90, 39, 0.1); border-radius: 16px;">
@@ -44,7 +72,7 @@ export class EmailService {
           </p>
           
           <div style="text-align: center; margin-bottom: 20px;">
-            <a href="${trackingUrl}" style="display: inline-block; background-color: #2D5A27; color: #ffffff; text-decoration: none; padding: 15px 35px; border-radius: 8px; font-weight: bold; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; transition: background-color 0.3s;">Suivre ma création</a>
+            <a href="${trackingUrl}" style="display: inline-block; background-color: #2D5A27; color: #ffffff; text-decoration: none; padding: 15px 35px; border-radius: 8px; font-weight: bold; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Suivre ma création</a>
           </div>
         </div>
 
@@ -56,16 +84,20 @@ export class EmailService {
     `;
 
     try {
-      this.logger.log(`Envoi de l'email de confirmation à ${clientEmail}...`);
+      this.logger.log(`Envoi email de confirmation (${this.maskEmail(clientEmail)})...`);
       await this.mailer.sendMail({
         to: clientEmail,
         subject,
         html,
       });
-      this.logger.log(`Email de confirmation envoyé avec succès à ${clientEmail}`);
+      this.logger.log(`Email de confirmation envoyé (${this.maskEmail(clientEmail)})`);
+      return { sent: true, message: 'Email de confirmation envoyé avec succès.' };
     } catch (error) {
-      console.error("=== STRICT SMTP DELIVERY ERROR ===", error);
-      this.logger.error(`Échec envoi email de confirmation à ${clientEmail}: ${String(error)}`);
+      const detail = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `Échec envoi email de confirmation (${this.maskEmail(clientEmail)}): ${detail}`,
+      );
+      return { sent: false, message: this.smtpErrorMessage('confirmation') };
     }
   }
 
@@ -73,17 +105,18 @@ export class EmailService {
     clientEmail: string | null | undefined,
     clientNom: string | null | undefined,
     codeSuivi: string | null | undefined,
-    newStatus: string | null | undefined
-  ) {
+    newStatus: string | null | undefined,
+  ): Promise<EmailNotificationResult> {
     if (!clientEmail) {
-      this.logger.warn(`[sendStatusUpdate] Aucun email défini pour le client ${clientNom}`);
-      return;
+      const message = 'Aucune adresse email client — notification de statut non envoyée.';
+      this.logger.warn(`[sendStatusUpdate] ${message}`);
+      return { sent: false, message };
     }
 
     const trackingCode = codeSuivi || 'N/A';
     const statusLabel = newStatus || 'En attente';
     const subject = `Mise à jour de votre création - Menuiserie Digitale`;
-    const trackingUrl = `http://localhost:3000/suivi?code=${trackingCode}`;
+    const trackingUrl = this.getTrackingUrl(trackingCode);
 
     const html = `
       <div style="font-family: 'Noto Serif', Georgia, serif; line-height: 1.6; color: #1c1c18; max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #fcf9f3; border: 1px solid rgba(45, 90, 39, 0.1); border-radius: 16px;">
@@ -108,7 +141,7 @@ export class EmailService {
           </p>
           
           <div style="text-align: center; margin-bottom: 20px;">
-            <a href="${trackingUrl}" style="display: inline-block; background-color: #2D5A27; color: #ffffff; text-decoration: none; padding: 15px 35px; border-radius: 8px; font-weight: bold; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; transition: background-color 0.3s;">Accéder au Suivi</a>
+            <a href="${trackingUrl}" style="display: inline-block; background-color: #2D5A27; color: #ffffff; text-decoration: none; padding: 15px 35px; border-radius: 8px; font-weight: bold; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Accéder au Suivi</a>
           </div>
         </div>
 
@@ -120,16 +153,22 @@ export class EmailService {
     `;
 
     try {
-      this.logger.log(`Envoi de la mise à jour de statut (${statusLabel}) à ${clientEmail}...`);
+      this.logger.log(
+        `Envoi email de statut "${statusLabel}" (${this.maskEmail(clientEmail)})...`,
+      );
       await this.mailer.sendMail({
         to: clientEmail,
         subject,
         html,
       });
-      this.logger.log(`Email de statut envoyé avec succès à ${clientEmail}`);
+      this.logger.log(`Email de statut envoyé (${this.maskEmail(clientEmail)})`);
+      return { sent: true, message: 'Email de notification de statut envoyé.' };
     } catch (error) {
-      console.error("=== STRICT SMTP DELIVERY ERROR ===", error);
-      this.logger.error(`Échec envoi email de statut à ${clientEmail}: ${String(error)}`);
+      const detail = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `Échec envoi email de statut (${this.maskEmail(clientEmail)}): ${detail}`,
+      );
+      return { sent: false, message: this.smtpErrorMessage('status') };
     }
   }
 }

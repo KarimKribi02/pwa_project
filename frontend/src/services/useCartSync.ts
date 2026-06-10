@@ -1,149 +1,222 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, CartItem, PendingOrder } from './db';
-import { createOrder, getUserByEmail } from './api';
+import { db, CartItem, PendingOrder, OrderPayload } from './db';
+import { trySubmitOrderOnline, isRetryableError } from './orderSubmit';
 
-// Sync State Event Dispatcher helpers
-// Used to notify the UI connectivity indicator of sync operations
-export const dispatchSyncEvent = (status: 'idle' | 'syncing' | 'success' | 'failed', message?: string) => {
+export interface EmailNotification {
+  sent: boolean;
+  message: string;
+}
+
+function extractEmailNotification(
+  result: Record<string, unknown>,
+): EmailNotification | undefined {
+  const raw = result.email_notification as EmailNotification | undefined;
+  if (!raw || typeof raw.sent !== 'boolean') return undefined;
+  return raw;
+}
+
+export const dispatchSyncEvent = (
+  status: 'idle' | 'syncing' | 'success' | 'failed',
+  message?: string,
+) => {
   if (typeof window !== 'undefined') {
-    const event = new CustomEvent('menuiserie-sync-status', {
-      detail: { status, message }
-    });
-    window.dispatchEvent(event);
+    window.dispatchEvent(
+      new CustomEvent('menuiserie-sync-status', { detail: { status, message } }),
+    );
   }
 };
 
-/**
- * Helper to process user resolution and order creation.
- * Resolves or creates a user on the fly before creating the order.
- */
-export async function syncSinglePendingOrder(pendingOrder: PendingOrder): Promise<any> {
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-  const { orderData } = pendingOrder;
-
-  let userId = orderData.id_utilisateur;
-
-  // If we don't have a userId yet, we need to resolve it by email
-  if (!userId && orderData.clientEmail) {
+async function registerBackgroundSync() {
+  if ('serviceWorker' in navigator && 'SyncManager' in window) {
     try {
-      const user = await getUserByEmail(orderData.clientEmail);
-      userId = user.id?.toString();
+      const registration = await navigator.serviceWorker.ready;
+      await registration.sync.register('sync-orders');
     } catch (err) {
-      // User doesn't exist, let's create a guest profile
-      try {
-        const newUserRes = await fetch(`${API_URL}/addUtilisateur`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            nom: orderData.clientNom,
-            email: orderData.clientEmail,
-            mot_passe: Math.random().toString(36).slice(-8), // Random temp password
-            role: 'user'
-          }),
-        });
-
-        if (newUserRes.ok) {
-          const newUser = await newUserRes.json();
-          userId = newUser.id?.toString();
-        }
-      } catch (userCreateErr) {
-        console.error("Failed to create guest user during sync:", userCreateErr);
-        // Fallback: we will try to proceed without user ID if backend allows
-      }
+      console.warn('Background Sync registration failed:', err);
     }
   }
-
-  // Construct final order payload
-  const finalPayload = {
-    ...orderData,
-    id_utilisateur: userId
-  };
-
-  // Submit the order
-  return await createOrder(finalPayload);
 }
 
-/**
- * Main Thread Order Sync Engine
- * Iterates through Dexie's pendingOrders table, pushes them to the API,
- * and manages UI status updates.
- */
-export async function autoPushPendingOrders(): Promise<number> {
-  const pending = await db.pendingOrders.where('status').equals('pending').toArray();
-  if (pending.length === 0) return 0;
+export async function syncSinglePendingOrder(pendingOrder: PendingOrder): Promise<Record<string, unknown>> {
+  const result = await trySubmitOrderOnline(pendingOrder.orderData);
+  return result;
+}
 
-  dispatchSyncEvent('syncing', `Synchronisation de ${pending.length} commande(s)...`);
-  let successCount = 0;
-  let hasFailed = false;
+export async function saveSyncedOrder(
+  trackingCode: string,
+  orderSnapshot: Record<string, unknown>,
+): Promise<void> {
+  await db.syncedOrderCache.put({
+    trackingCode,
+    orderSnapshot,
+    cachedAt: Date.now(),
+  });
 
-  for (const order of pending) {
-    if (!order.id) continue;
-    try {
-      // Update local status to syncing
-      await db.pendingOrders.update(order.id, { status: 'syncing' });
-      
-      // Perform order synchronization
-      await syncSinglePendingOrder(order);
+  const all = await db.syncedOrderCache.orderBy('cachedAt').reverse().toArray();
+  if (all.length > 20) {
+    const toRemove = all.slice(20);
+    await db.syncedOrderCache.bulkDelete(toRemove.map((o) => o.trackingCode));
+  }
+}
 
-      // Remove successfully synced order from IndexedDB
-      await db.pendingOrders.delete(order.id);
-      successCount++;
-    } catch (err: any) {
-      console.error(`Sync failed for pending order #${order.id}:`, err);
-      hasFailed = true;
-      await db.pendingOrders.update(order.id, { 
-        status: 'failed',
-        errorMessage: err.message || 'Unknown network error'
-      });
+async function pushSinglePendingOrder(
+  order: PendingOrder,
+): Promise<{ serverCode: string; emailNotification?: EmailNotification } | null> {
+  if (!order.id) return null;
+
+  try {
+    await db.pendingOrders.update(order.id, {
+      status: 'syncing',
+      syncAttempts: (order.syncAttempts ?? 0) + 1,
+      lastAttemptAt: Date.now(),
+    });
+
+    const result = await syncSinglePendingOrder(order);
+    const serverCode = (result.code_suivi as string) || `MD-${result.id}`;
+    const emailNotification = extractEmailNotification(result);
+
+    await saveSyncedOrder(serverCode, result);
+    await db.pendingOrders.update(order.id, {
+      status: 'synced',
+      serverTrackingCode: serverCode,
+    });
+    await db.pendingOrders.delete(order.id);
+
+    return { serverCode, emailNotification };
+  } catch (err: unknown) {
+    console.error(`Sync failed for pending order #${order.id}:`, err);
+    await db.pendingOrders.update(order.id, {
+      status: 'failed',
+      errorMessage: err instanceof Error ? err.message : 'Unknown network error',
+      lastAttemptAt: Date.now(),
+    });
+    return null;
+  }
+}
+
+/** Sync one queued order immediately (with quick retries when online). */
+export async function syncPendingOrderById(
+  pendingId: number,
+  options?: { silent?: boolean; retries?: number },
+): Promise<{ serverCode: string; emailNotification?: EmailNotification } | null> {
+  const silent = options?.silent ?? false;
+  const maxAttempts = options?.retries ?? 3;
+
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    return null;
+  }
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const order = await db.pendingOrders.get(pendingId);
+    if (!order) {
+      const cached = await db.syncedOrderCache.orderBy('cachedAt').reverse().first();
+      return cached ? { serverCode: cached.trackingCode } : null;
+    }
+
+    if (!silent && attempt === 0) {
+      dispatchSyncEvent('syncing', 'Transmission de votre commande...');
+    }
+
+    const syncResult = await pushSinglePendingOrder(order);
+    if (syncResult) {
+      if (!silent) {
+        if (syncResult.emailNotification && !syncResult.emailNotification.sent) {
+          dispatchSyncEvent('failed', syncResult.emailNotification.message);
+        } else {
+          dispatchSyncEvent('success', `Commande transmise · ${syncResult.serverCode}`);
+        }
+      }
+      return syncResult;
+    }
+
+    if (attempt < maxAttempts - 1) {
+      await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
     }
   }
 
-  if (successCount > 0 && !hasFailed) {
-    dispatchSyncEvent('success', `${successCount} commande(s) transmise(s) à l'atelier !`);
-  } else if (hasFailed) {
-    dispatchSyncEvent('failed', "Échec de synchronisation de certaines commandes.");
-  } else {
-    dispatchSyncEvent('idle');
+  return null;
+}
+
+export async function autoPushPendingOrders(options?: { silent?: boolean }): Promise<number> {
+  const silent = options?.silent ?? false;
+  const pending = await db.pendingOrders
+    .where('status')
+    .anyOf(['pending', 'failed'])
+    .toArray();
+
+  if (pending.length === 0) return 0;
+
+  if (!silent) {
+    dispatchSyncEvent('syncing', `Synchronisation de ${pending.length} commande(s)...`);
+  }
+
+  let successCount = 0;
+  const syncedCodes: string[] = [];
+  let hasFailed = false;
+  let emailWarning: string | null = null;
+
+  for (const order of pending) {
+    const syncResult = await pushSinglePendingOrder(order);
+    if (syncResult) {
+      successCount++;
+      syncedCodes.push(syncResult.serverCode);
+      if (syncResult.emailNotification && !syncResult.emailNotification.sent) {
+        emailWarning = syncResult.emailNotification.message;
+      }
+    } else {
+      hasFailed = true;
+    }
+  }
+
+  if (!silent) {
+    if (emailWarning && successCount > 0) {
+      dispatchSyncEvent('failed', emailWarning);
+    } else if (successCount > 0 && !hasFailed) {
+      const codes = syncedCodes.join(', ');
+      dispatchSyncEvent(
+        'success',
+        `${successCount} commande(s) transmise(s)${codes ? ` · ${codes}` : ''}`,
+      );
+    } else if (successCount > 0 && hasFailed) {
+      dispatchSyncEvent(
+        'success',
+        `${successCount} commande(s) transmise(s). Certaines ont échoué.`,
+      );
+    } else if (hasFailed) {
+      dispatchSyncEvent('failed', 'Échec de synchronisation de certaines commandes.');
+    } else {
+      dispatchSyncEvent('idle');
+    }
   }
 
   return successCount;
 }
 
 export function useCartSync() {
-  // Live query for cart items from IndexedDB
   const cartItems = useLiveQuery(() => db.cart.toArray()) || [];
-  
-  // Live query for pending orders count
-  const pendingOrdersCount = useLiveQuery(() => 
-    db.pendingOrders.where('status').equals('pending').count()
-  ) || 0;
 
-  // --- Cart Actions ---
+  const pendingOrdersCount =
+    useLiveQuery(() =>
+      db.pendingOrders.where('status').anyOf(['pending', 'failed']).count(),
+    ) || 0;
 
   const addToCart = async (item: Omit<CartItem, 'updatedAt'>) => {
-    // Check if item with exact same configuration already exists
-    const existing = await db.cart.where({
-      product_id: item.product_id
-    }).toArray();
+    const existing = await db.cart.where({ product_id: item.product_id }).toArray();
 
-    const isMatch = existing.find(e => 
-      e.customization.dimensions === item.customization.dimensions &&
-      e.customization.wood === item.customization.wood &&
-      e.customization.finish === item.customization.finish
+    const isMatch = existing.find(
+      (e) =>
+        e.customization.dimensions === item.customization.dimensions &&
+        e.customization.wood === item.customization.wood &&
+        e.customization.finish === item.customization.finish,
     );
 
-    if (isMatch && isMatch.id) {
-      // Increment quantity
+    if (isMatch?.id) {
       await db.cart.update(isMatch.id, {
         quantity: isMatch.quantity + item.quantity,
-        updatedAt: Date.now()
+        updatedAt: Date.now(),
       });
     } else {
-      // Add as new entry
-      await db.cart.add({
-        ...item,
-        updatedAt: Date.now()
-      });
+      await db.cart.add({ ...item, updatedAt: Date.now() });
     }
   };
 
@@ -163,32 +236,62 @@ export function useCartSync() {
     await db.cart.clear();
   };
 
-  // Calculate cart totals
-  const cartTotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const cartTotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
-  // --- Checkout Action ---
-
-  const queueOfflineOrder = async (orderData: PendingOrder['orderData']) => {
-    // Write order into Dexie DB
+  const queueOfflineOrder = async (orderData: OrderPayload) => {
     const id = await db.pendingOrders.add({
       orderData,
       status: 'pending',
-      createdAt: Date.now()
+      localTrackingCode: '',
+      syncAttempts: 0,
+      createdAt: Date.now(),
     });
 
-    // Register Background Sync if service worker is active
-    if ('serviceWorker' in navigator && 'SyncManager' in window) {
-      try {
-        const registration = await navigator.serviceWorker.ready;
-        await registration.sync.register('sync-orders');
-        console.log('Background Sync registered successfully via Service Worker');
-      } catch (err) {
-        console.warn('Service Worker Sync registration failed, relying on main-thread sync:', err);
-      }
-    }
+    const localTrackingCode = `MD-PENDING-${id}`;
+    await db.pendingOrders.update(id, { localTrackingCode });
+    await registerBackgroundSync();
 
-    return id;
+    return { id, localTrackingCode };
+  };
+
+  const submitOrder = async (
+    orderData: OrderPayload,
+  ): Promise<{
+    trackingCode: string;
+    queued: boolean;
+    pendingId?: number;
+    emailNotification?: EmailNotification;
+  }> => {
+    try {
+      const result = await trySubmitOrderOnline(orderData);
+      const trackingCode = (result.code_suivi as string) || `MD-${result.id}`;
+      const emailNotification = extractEmailNotification(result);
+      await saveSyncedOrder(trackingCode, result);
+      return { trackingCode, queued: false, emailNotification };
+    } catch (err) {
+      if (!isRetryableError(err) && typeof navigator !== 'undefined' && navigator.onLine) {
+        throw err;
+      }
+
+      const { id, localTrackingCode } = await queueOfflineOrder(orderData);
+
+      const syncResult = await syncPendingOrderById(id, { silent: true, retries: 3 });
+      if (syncResult) {
+        if (syncResult.emailNotification && !syncResult.emailNotification.sent) {
+          dispatchSyncEvent('failed', syncResult.emailNotification.message);
+        } else {
+          dispatchSyncEvent('success', `Commande transmise · ${syncResult.serverCode}`);
+        }
+        return {
+          trackingCode: syncResult.serverCode,
+          queued: false,
+          emailNotification: syncResult.emailNotification,
+        };
+      }
+
+      return { trackingCode: localTrackingCode, queued: true, pendingId: id };
+    }
   };
 
   return {
@@ -201,6 +304,7 @@ export function useCartSync() {
     removeFromCart,
     clearCart,
     queueOfflineOrder,
-    syncPendingOrders: autoPushPendingOrders
+    submitOrder,
+    syncPendingOrders: autoPushPendingOrders,
   };
 }

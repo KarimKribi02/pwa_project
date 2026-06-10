@@ -1,8 +1,8 @@
-import { Controller, Get, Post, Body, Param, NotFoundException, Put, Delete, Req } from "@nestjs/common";
+import { Controller, Get, Post, Body, Param, NotFoundException, Put, Delete } from "@nestjs/common";
 import { PrismaService } from "src/prisma.service";
 import { AjouterCommandeDto } from "./dtos/ajouterCommande.dto";
 import { ModifierCommandeDto } from "./dtos/modifierCommande.dto";
-import { EmailService } from "src/email/email.service";
+import { EmailService, type EmailNotificationResult } from "src/email/email.service";
 import { Logger } from "@nestjs/common";
 
 @Controller({})
@@ -35,6 +35,13 @@ export class CommandeController {
             result += characters.charAt(Math.floor(Math.random() * characters.length));
         }
         return `MD-2026-${result}`;
+    }
+
+    private withEmailNotification(
+        response: Record<string, unknown>,
+        emailNotification: EmailNotificationResult,
+    ) {
+        return { ...response, email_notification: emailNotification };
     }
 
     // Fonction utilitaire pour formater la réponse commande
@@ -216,9 +223,7 @@ export class CommandeController {
 
     // Ajouter une commande
     @Post('/api/addCommande')
-    public async addCommande(@Req() req: any, @Body() body: AjouterCommandeDto) {
-        console.log("RAW HEADERS:", req.headers);
-        console.log("INTERCEPTED BODY:", body);
+    public async addCommande(@Body() body: AjouterCommandeDto) {
         try {
             let clientNom = body.clientNom;
             let clientTel = body.clientTel;
@@ -294,27 +299,31 @@ export class CommandeController {
                 }
             });
 
-            try {
-                if (newCommande.clientEmail) {
-                    console.log("=== [EMAIL SYSTEM] INITIATING TRANSIT TO:", newCommande.clientEmail);
-                    console.log("=== [EMAIL SYSTEM] ACTIVE TRACKING KEY:", codeSuivi);
-
-                    await this.emailService.sendOrderConfirmation(
-                        newCommande.clientEmail,
-                        newCommande.clientNom || 'Client',
-                        codeSuivi
-                    );
-                    
-                    console.log("=== [EMAIL SYSTEM] TRANSMISSION COMPLETED SUCCESSFULLY ===");
+            let emailNotification: EmailNotificationResult;
+            if (newCommande.clientEmail) {
+                emailNotification = await this.emailService.sendOrderConfirmation(
+                    newCommande.clientEmail,
+                    newCommande.clientNom || 'Client',
+                    codeSuivi,
+                );
+                if (!emailNotification.sent) {
+                    this.logger.warn(`[addCommande] ${emailNotification.message}`);
                 }
-            } catch (emailErr) {
-                console.error("❌ === [EMAIL SYSTEM] CRITICAL SMTP TRANSPORT FAILURE ===", emailErr);
-                this.logger.error(`[addCommande] Échec envoi email de confirmation: ${String(emailErr)}`);
+            } else {
+                emailNotification = {
+                    sent: false,
+                    message: 'Aucune adresse email fournie — confirmation non envoyée.',
+                };
             }
 
-            return this.formatCommandeResponse(newCommande);
+            return this.withEmailNotification(
+                this.formatCommandeResponse(newCommande),
+                emailNotification,
+            );
         } catch (error) {
-            console.error('Error creating commande:', error);
+            this.logger.error(
+                `[addCommande] Erreur création commande: ${error instanceof Error ? error.message : 'Erreur inconnue'}`,
+            );
             if (error instanceof NotFoundException) {
                 throw error;
             }
@@ -419,20 +428,23 @@ export class CommandeController {
                 }
             });
 
+            let emailNotification: EmailNotificationResult | null = null;
             if (body.statut && body.statut !== existingCommande.statut) {
-                try {
-                    await this.emailService.sendStatusUpdate(
-                        updatedCommande.clientEmail,
-                        updatedCommande.clientNom || 'Client',
-                        updatedCommande.codeSuivi,
-                        updatedCommande.statut
-                    );
-                } catch (err) {
-                    this.logger.error(`[updateCommande] Erreur envoi email: ${String(err)}`);
+                emailNotification = await this.emailService.sendStatusUpdate(
+                    updatedCommande.clientEmail,
+                    updatedCommande.clientNom || 'Client',
+                    updatedCommande.codeSuivi,
+                    updatedCommande.statut,
+                );
+                if (!emailNotification.sent) {
+                    this.logger.warn(`[updateCommande] ${emailNotification.message}`);
                 }
             }
 
-            return this.formatCommandeResponse(updatedCommande);
+            const response = this.formatCommandeResponse(updatedCommande);
+            return emailNotification
+                ? this.withEmailNotification(response, emailNotification)
+                : response;
         } catch (error) {
             if (error instanceof NotFoundException) {
                 throw error;
@@ -508,20 +520,23 @@ export class CommandeController {
                 }
             });
 
+            let emailNotification: EmailNotificationResult | null = null;
             if (newStatus !== oldStatus) {
-                try {
-                    await this.emailService.sendStatusUpdate(
-                        updatedCommande.clientEmail,
-                        updatedCommande.clientNom || 'Client',
-                        updatedCommande.codeSuivi,
-                        updatedCommande.statut
-                    );
-                } catch (err) {
-                    this.logger.error(`[ValidateCommande] Erreur envoi email: ${String(err)}`);
+                emailNotification = await this.emailService.sendStatusUpdate(
+                    updatedCommande.clientEmail,
+                    updatedCommande.clientNom || 'Client',
+                    updatedCommande.codeSuivi,
+                    updatedCommande.statut,
+                );
+                if (!emailNotification.sent) {
+                    this.logger.warn(`[ValidateCommande] ${emailNotification.message}`);
                 }
             }
 
-            return this.formatCommandeResponse(updatedCommande);
+            const response = this.formatCommandeResponse(updatedCommande);
+            return emailNotification
+                ? this.withEmailNotification(response, emailNotification)
+                : response;
         } catch (error) {
             if (error instanceof NotFoundException) {
                 throw error;

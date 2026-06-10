@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { getProduct } from '@/services/api';
+import { loadProductWithRevalidate } from '@/services/catalogSync';
 import { useCartSync } from '@/services/useCartSync';
 
 const WOOD_TYPES = [
@@ -40,6 +40,7 @@ export default function ProductDetail() {
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [offlineEmpty, setOfflineEmpty] = useState(false);
   const [activeImg, setActiveImg] = useState(0);
   const [width, setWidth] = useState(180);
   const [length, setLength] = useState(90);
@@ -51,9 +52,19 @@ export default function ProductDetail() {
     async function fetchProduct() {
       if (!params.id) return;
       try {
-        const data = await getProduct(params.id as string);
-        setProduct(data);
-        setEstimatedPrice(Number(data.prix) || 0);
+        const result = await loadProductWithRevalidate(params.id as string, (data) => {
+          setProduct(data);
+          setEstimatedPrice(Number(data.prix) || 0);
+        });
+        if (result.product) {
+          setProduct(result.product);
+          setEstimatedPrice(Number(result.product.prix) || 0);
+        } else if (result.isEmpty) {
+          setOfflineEmpty(true);
+          setError("Connectez-vous une fois pour télécharger ce produit");
+        } else {
+          setError("Produit introuvable");
+        }
       } catch (err) {
         console.error("Failed to fetch product:", err);
         setError("Produit introuvable");
@@ -104,8 +115,13 @@ export default function ProductDetail() {
 
   if (error || !product) {
     return (
-      <div className="min-h-screen bg-surface pt-32 text-center">
+      <div className="min-h-screen bg-surface pt-32 text-center px-6">
         <h1 className="text-2xl font-serif text-primary mb-4">{error || "Produit non trouvé"}</h1>
+        {offlineEmpty && (
+          <p className="text-sm text-stone-500 max-w-md mx-auto mb-6">
+            Visitez le catalogue en ligne une première fois pour enregistrer les produits sur votre appareil.
+          </p>
+        )}
         <Link href="/catalog" className="text-secondary font-bold uppercase tracking-widest">Retour au catalogue</Link>
       </div>
     );

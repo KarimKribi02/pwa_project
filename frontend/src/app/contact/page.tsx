@@ -90,7 +90,7 @@ export default function ContactPage() {
                 <input 
                   type="text" 
                   required
-                  placeholder="Jean Dupont" 
+                  placeholder="Nom complet" 
                   value={formData.nom}
                   onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
                   className="w-full bg-[#fcf9f3] px-6 py-4 rounded-xl outline-none border border-stone-200/60 focus:border-[#2D5A27] focus:ring-2 focus:ring-[#2D5A27]/5 text-primary text-sm font-semibold transition-all" 
@@ -101,7 +101,7 @@ export default function ContactPage() {
                 <input 
                   type="email" 
                   required
-                  placeholder="jean@example.com" 
+                  placeholder="email@example.com" 
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="w-full bg-[#fcf9f3] px-6 py-4 rounded-xl outline-none border border-stone-200/60 focus:border-[#2D5A27] focus:ring-2 focus:ring-[#2D5A27]/5 text-primary text-sm font-semibold transition-all" 

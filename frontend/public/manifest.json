@@ -5,17 +5,36 @@
   "start_url": "/",
   "display": "standalone",
   "background_color": "#fcf9f3",
-  "theme_color": "#ffffff",
+  "theme_color": "#396632",
+  "categories": ["shopping", "business"],
   "icons": [
     {
       "src": "/logom.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/logom.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Catalogue",
+      "short_name": "Catalogue",
+      "description": "Parcourir nos créations",
+      "url": "/catalog",
+      "icons": [{ "src": "/logom.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Suivi commande",
+      "short_name": "Suivi",
+      "description": "Suivre une commande",
+      "url": "/suivi",
+      "icons": [{ "src": "/logom.png", "sizes": "192x192" }]
     }
   ]
 }

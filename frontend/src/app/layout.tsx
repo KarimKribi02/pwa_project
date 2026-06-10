@@ -37,6 +37,8 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ScrollToTop from "@/components/ScrollToTop";
 import { ConnectivityProvider } from "@/components/ConnectivityProvider";
+import CacheStatusBadge from "@/components/CacheStatusBadge";
+import InstallPrompt from "@/components/InstallPrompt";
 
 export default function RootLayout({
   children,
@@ -49,10 +51,12 @@ export default function RootLayout({
         <ConnectivityProvider>
           <ScrollToTop />
           <Navbar />
+          <div className="fixed bottom-4 left-4 z-40 hidden md:block">
+            <CacheStatusBadge />
+          </div>
+          <InstallPrompt />
 
-          <main className="flex-1">
-            {children}
-          </main>
+          <main className="flex-1">{children}</main>
 
           <Footer />
         </ConnectivityProvider>
@@ -60,7 +64,4 @@ export default function RootLayout({
     </html>
   );
 }
-
-
-
 
