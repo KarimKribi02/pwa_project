@@ -61,6 +61,14 @@ registerRoute(
   new NetworkOnly({ plugins: [bgSyncPlugin] }),
 );
 
+// Register a route for all page navigations to go NetworkOnly.
+// If the network is offline, the fetch will fail, triggering the setCatchHandler.
+registerRoute(
+  ({ request }) => request.mode === 'navigate',
+  new NetworkOnly()
+);
+
+
 self.addEventListener('sync', (event) => {
   if (event.tag === 'sync-orders') {
     event.waitUntil(
@@ -103,9 +111,24 @@ self.addEventListener('periodicsync', (event) => {
   }
 });
 
+const FALLBACK_HTML_URL = '/offline';
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open('offline-fallbacks').then((cache) => cache.add(FALLBACK_HTML_URL))
+  );
+});
+
 setCatchHandler(async ({ request }) => {
   if (request.destination === 'document') {
-    return (await matchPrecache('/offline')) || Response.error();
+    const precached = await matchPrecache(FALLBACK_HTML_URL);
+    if (precached) return precached;
+    
+    const cache = await caches.open('offline-fallbacks');
+    const cachedResponse = await cache.match(FALLBACK_HTML_URL);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
   }
   return Response.error();
 });

@@ -118,6 +118,10 @@ export const ConnectivityProvider: React.FC<{ children: React.ReactNode }> = ({ 
     window.addEventListener('menuiserie-catalog-sync', handleCatalogSync);
 
     if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then((reg) => console.log('Service Worker registered successfully:', reg))
+        .catch((err) => console.error('Service Worker registration failed:', err));
+
       navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
       navigator.serviceWorker.ready.then((reg) => {
         if ('periodicSync' in reg) {

@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rapport de Fonctionnalités PWA — Menuiserie Digitale</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --primary: #396632;
+      --primary-light: #eff6ee;
+      --primary-dark: #244120;
+      --secondary: #d97706;
+      --background: #faf9f6;
+      --surface: #ffffff;
+      --on-background: #1c1917;
+      --on-surface: #44403c;
+      --border: #e7e5e4;
+      --shadow: 0 4px 20px -2px rgba(120, 113, 108, 0.1), 0 2px 8px -1px rgba(120, 113, 108, 0.05);
+      --font-serif: 'Playfair Display', serif;
+      --font-heading: 'Outfit', sans-serif;
+      --font-body: 'Inter', sans-serif;
+      --border-radius: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--background);
+      color: var(--on-background);
+      font-family: var(--font-body);
+      line-height: 1.6;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Header */
+    header {
+      background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+      color: white;
+      padding: 4rem 2rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      border-bottom: 6px solid var(--secondary);
+    }
+
+    header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at 80% 20%, rgba(217, 119, 6, 0.15) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .header-container {
+      max-w: 1000px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 10;
+    }
+
+    .badge-pwa {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      padding: 0.4rem 1rem;
+      border-radius: 100px;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      display: inline-block;
+      margin-bottom: 1rem;
+    }
+
+    h1 {
+      font-family: var(--font-serif);
+      font-weight: 700;
+      font-style: italic;
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      letter-spacing: -0.02em;
+    }
+
+    header p {
+      font-size: 1.15rem;
+      font-weight: 300;
+      opacity: 0.9;
+      max-w: 600px;
+      margin: 0 auto;
+    }
+
+    /* Main Layout */
+    .container {
+      max-w: 1200px;
+      margin: 3rem auto;
+      padding: 0 1.5rem;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 3rem;
+    }
+
+    /* Sticky Sidebar Navigation */
+    aside {
+      position: sticky;
+      top: 2rem;
+      height: fit-content;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--border-radius);
+      padding: 1.5rem;
+      box-shadow: var(--shadow);
+    }
+
+    aside h3 {
+      font-family: var(--font-heading);
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--primary);
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid var(--primary-light);
+    }
+
+    .nav-list {
+      list-style: none;
+    }
+
+    .nav-item {
+      margin-bottom: 0.5rem;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      color: var(--on-surface);
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 500;
+      font-size: 0.95rem;
+      transition: all 0.2s ease;
+    }
+
+    .nav-link:hover {
+      background-color: var(--primary-light);
+      color: var(--primary);
+    }
+
+    .nav-link.active {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    .nav-link svg {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+    }
+
+    /* Main Content Area */
+    main {
+      display: flex;
+      flex-direction: column;
+      gap: 3rem;
+    }
+
+    section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--border-radius);
+      padding: 2.5rem;
+      box-shadow: var(--shadow);
+      scroll-margin-top: 2rem;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    section:hover {
+      box-shadow: 0 10px 30px -10px rgba(120, 113, 108, 0.15);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px dashed var(--border);
+    }
+
+    .section-title-group {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .section-icon {
+      background: var(--primary-light);
+      color: var(--primary);
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .section-icon svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    h2 {
+      font-family: var(--font-heading);
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--primary-dark);
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: #dcfce7;
+      color: #166534;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.35rem 0.75rem;
+      border-radius: 100px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Content components */
+    .lead-text {
+      font-size: 1.1rem;
+      color: var(--on-surface);
+      margin-bottom: 1.5rem;
+      font-weight: 500;
+    }
+
+    p {
+      color: var(--on-surface);
+      margin-bottom: 1.25rem;
+      font-size: 0.95rem;
+      line-height: 1.7;
+    }
+
+    /* Files section */
+    .files-card {
+      background: #fafaf9;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin: 1.5rem 0;
+    }
+
+    .files-card-title {
+      font-family: var(--font-heading);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #78716c;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .file-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .file-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.85rem;
+      color: var(--primary-dark);
+      background: white;
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      border: 1px solid #e7e5e4;
+    }
+
+    .file-item svg {
+      color: #a8a29e;
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Details Grid */
+    .details-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .details-box {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+
+    .details-box h4 {
+      font-family: var(--font-heading);
+      font-size: 1.05rem;
+      color: var(--primary);
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .details-box ul {
+      padding-left: 1.25rem;
+      font-size: 0.9rem;
+      color: var(--on-surface);
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    /* Interactive Status Board */
+    .status-board {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--border-radius);
+      padding: 2.5rem;
+      box-shadow: var(--shadow);
+      margin-bottom: 3rem;
+    }
+
+    .status-board-header {
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+
+    .status-board-header h2 {
+      font-size: 1.8rem;
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .status-card {
+      background: #fafaf9;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      text-align: center;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .status-card.active {
+      border-left: 4px solid var(--primary);
+    }
+
+    .status-card-icon {
+      background: var(--primary-light);
+      color: var(--primary);
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1rem;
+    }
+
+    .status-card h4 {
+      font-family: var(--font-heading);
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .status-card p {
+      font-size: 0.8rem;
+      color: #78716c;
+      margin-bottom: 0;
+      line-height: 1.4;
+    }
+
+    /* Live connection simulator */
+    .simulator {
+      background: var(--primary-light);
+      border: 1px solid rgba(57, 102, 50, 0.2);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-top: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .simulator-text h4 {
+      font-family: var(--font-heading);
+      color: var(--primary-dark);
+      font-size: 1.1rem;
+    }
+
+    .simulator-text p {
+      margin-bottom: 0;
+      font-size: 0.85rem;
+      color: #44403c;
+    }
+
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .status-label {
+      font-weight: 700;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .status-label.online {
+      color: var(--primary);
+    }
+
+    .status-label.offline {
+      color: var(--secondary);
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 34px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: var(--secondary);
+      transition: .4s;
+      border-radius: 34px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 26px;
+      width: 26px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: var(--primary);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(26px);
+    }
+
+    /* Code Block styling */
+    pre {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 1.25rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.8rem;
+      margin: 1rem 0;
+      border: 1px solid #333;
+    }
+
+    code {
+      font-family: 'Courier New', Courier, monospace;
+      font-weight: bold;
+      color: var(--primary-dark);
+      background: #eef2ed;
+      padding: 0.1rem 0.3rem;
+      border-radius: 4px;
+      font-size: 0.9em;
+    }
+
+    pre code {
+      color: inherit;
+      background: inherit;
+      padding: 0;
+      border-radius: 0;
+      font-weight: normal;
+      font-size: inherit;
+    }
+
+    /* Footer */
+    footer {
+      background: var(--primary-dark);
+      color: white;
+      text-align: center;
+      padding: 3rem 2rem;
+      margin-top: 5rem;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    footer p {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.9rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+      aside {
+        display: none; /* Hide sticky nav on mobile */
+      }
+      h1 {
+        font-size: 2.2rem;
+      }
+      .details-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-container">
+      <span class="badge-pwa">PWA Actif &amp; Optimisé</span>
+      <h1>Menuiserie Digitale</h1>
+      <p>Rapport d'implémentation PWA (Progressive Web App) et fonctionnement hors-ligne.</p>
+    </div>
+  </header>
+
+  <div class="container">
+    
+    <!-- Navigation Sidebar -->
+    <aside>
+      <h3>Fonctionnalités</h3>
+      <ul class="nav-list">
+        <li class="nav-item">
+          <a href="#intro" class="nav-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            Vue d'ensemble
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#manifest" class="nav-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+            Manifeste &amp; Installabilité
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#serviceworker" class="nav-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+            Service Worker Caches
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#indexeddb" class="nav-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"></path></svg>
+            IndexedDB (Dexie)
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#catalog" class="nav-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+            Catalogue Offline
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#cart" class="nav-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+            Panier Offline
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#orders" class="nav-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+            Commandes &amp; Sync
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#fallback" class="nav-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            Page de Secours
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#indicators" class="nav-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+            UI/UX Connectivité
+          </a>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- Content -->
+    <main>
+
+      <!-- Dashboard Status -->
+      <div class="status-board">
+        <div class="status-board-header">
+          <h2>Tableau de Bord des Services PWA</h2>
+          <p>État d'implémentation et de fonctionnement en direct dans le projet.</p>
+        </div>
+        <div class="status-grid">
+          <div class="status-card active">
+            <div class="status-card-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            </div>
+            <h4>Service Worker</h4>
+            <p>Actif, compilé et gère le routage réseau.</p>
+          </div>
+          <div class="status-card active">
+            <div class="status-card-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+            </div>
+            <h4>Base IndexedDB</h4>
+            <p>Dexie initialisé avec 6 tables opérationnelles.</p>
+          </div>
+          <div class="status-card active">
+            <div class="status-card-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+            </div>
+            <h4>File d'attente Sync</h4>
+            <p>Enregistrement du Background Sync pour les commandes.</p>
+          </div>
+        </div>
+
+        <div class="simulator">
+          <div class="simulator-text">
+            <h4>Simulateur d'État Réseau Visualisé</h4>
+            <p>Ajustez l'état réseau simulé pour tester la réaction dynamique de l'interface.</p>
+          </div>
+          <div class="toggle-container">
+            <span class="status-label online" id="sim-status-label">En ligne</span>
+            <label class="switch">
+              <input type="checkbox" checked id="network-toggle">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section: Vue d'ensemble -->
+      <section id="intro">
+        <div class="section-header">
+          <div class="section-title-group">
+            <div class="section-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            </div>
+            <h2>Vue d'ensemble de l'Architecture</h2>
+          </div>
+          <span class="status-badge">Opérationnel</span>
+        </div>
+        <p class="lead-text">
+          La PWA de la <strong>Menuiserie Digitale</strong> est conçue pour offrir une expérience fluide, rapide et résiliente, même dans des contextes de connexion instable ou inexistante.
+        </p>
+        <p>
+          L'application repose sur un couplage robuste entre un <strong>Service Worker Workbox</strong> (qui gère la mise en cache des assets, du réseau, des images et des requêtes API GET) et <strong>IndexedDB via Dexie</strong> (qui sert de stockage hors-ligne structuré pour le catalogue de produits, le panier d'achat et la file d'attente des commandes clients).
+        </p>
+        <p>
+          Grâce à cette architecture, un utilisateur peut ouvrir le site dans le désert, parcourir le catalogue de menuiseries préalablement mis en cache, personnaliser sa table ou sa porte, l'ajouter au panier, et passer sa commande hors-ligne. Dès que l'appareil capte à nouveau du réseau, la commande est synchronisée automatiquement en arrière-plan avec le serveur NestJS.
+        </p>
+      </section>
+
+      <!-- Section: Manifest -->
+      <section id="manifest">
+        <div class="section-header">
+          <div class="section-title-group">
+            <div class="section-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+            </div>
+            <h2>Manifeste Web &amp; Installabilité</h2>
+          </div>
+          <span class="status-badge">Actif</span>
+        </div>
+        <p>
+          L'installabilité permet à l'utilisateur d'ajouter l'application sur l'écran d'accueil de son smartphone ou de son ordinateur de bureau en tant qu'application autonome (Standalone).
+        </p>
+        <div class="files-card">
+          <div class="files-card-title">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            Fichiers clés :
+          </div>
+          <ul class="file-list">
+            <li class="file-item">frontend/public/manifest.json</li>
+            <li class="file-item">frontend/src/app/layout.tsx (métadonnées)</li>
+            <li class="file-item">frontend/src/components/InstallPrompt.tsx (invite d'installation personnalisée)</li>
+          </ul>
+        </div>
+        <div class="details-grid">
+          <div class="details-box">
+            <h4>Propriétés clés du Manifeste</h4>
+            <ul>
+              <li><code>display: "standalone"</code> : Retire la barre d'adresse du navigateur.</li>
+              <li><code>start_url: "/"</code> : Ouvre toujours l'application à la racine.</li>
+              <li><code>theme_color: "#396632"</code> : Assigne la couleur vert forêt à la barre d'état système mobile.</li>
+              <li><code>icons</code> : Fournit des icônes haute résolution pour l'écran d'accueil.</li>
+            </ul>
+          </div>
+          <div class="details-box">
+            <h4>Invite d'installation personnalisée</h4>
+            <ul>
+              <li>Écoute l'événement standard <code>beforeinstallprompt</code> du navigateur.</li>
+              <li>Affiche une bannière ou un bouton élégant et discret invitant l'utilisateur à installer l'application PWA.</li>
+              <li>Sauvegarde temporairement l'événement pour déclencher l'invite système au clic.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Service Worker -->
+      <section id="serviceworker">
+        <div class="section-header">
+          <div class="section-title-group">
+            <div class="section-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+            </div>
+            <h2>Stratégies de Cache du Service Worker</h2>
+          </div>
+          <span class="status-badge">Actif</span>
+        </div>
+        <p>
+          Le Service Worker sert de proxy réseau intelligent. Il intercepte les requêtes réseau et applique des stratégies différenciées en fonction du type de ressource demandée.
+        </p>
+        <div class="files-card">
+          <div class="files-card-title">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            Fichiers clés :
+          </div>
+          <ul class="file-list">
+            <li class="file-item">frontend/src/sw.ts (Code source du Service Worker)</li>
+            <li class="file-item">frontend/public/sw.js (Service worker compilé)</li>
+            <li class="file-item">frontend/next.config.js (Configuration next-pwa)</li>
+          </ul>
+        </div>
+        <p>Le routage de Workbox est configuré avec les stratégies suivantes :</p>
+        <pre><code>// 1. Mise en cache des images (CacheFirst)
+registerRoute(
+  ({ request }) => request.destination === 'image',
+  new CacheFirst({
+    cacheName: 'menuiserie-images-cache',
+    plugins: [new ExpirationPlugin({ maxEntries: 120, maxAgeSeconds: 30 * 24 * 60 * 60 })]
+  })
+);
+
+// 2. Requêtes API GET (StaleWhileRevalidate)
+registerRoute(
+  ({ url, request }) => url.pathname.includes('/api/') && request.method === 'GET',
+  new StaleWhileRevalidate({
+    cacheName: 'menuiserie-api-cache',
+    plugins: [new ExpirationPlugin({ maxEntries: 60, maxAgeSeconds: 24 * 60 * 60 })]
+  })
+);
+
+// 3. Navigations de Pages HTML (NetworkOnly avec redirection Catch)
+registerRoute(
+  ({ request }) => request.mode === 'navigate',
+  new NetworkOnly()
+);</code></pre>
+
+        <h3 style="font-family: var(--font-heading); font-size: 1.25rem; color: var(--primary); margin: 2rem 0 1rem;">Détail des Stratégies de Caching</h3>
+        <div class="details-grid" style="grid-template-columns: 1fr; gap: 1.5rem; margin-top: 1rem;">
+          <div class="details-box">
+            <h4 style="color: var(--primary-dark); font-weight: 600;">⚡ Cache First (Images)</h4>
+            <p style="margin-top: 0.5rem; font-size: 0.9rem;">
+              <strong>Quand :</strong> Pour toutes les requêtes d'images (PNG, JPG, WebP, etc.).
+            </p>
+            <p style="font-size: 0.9rem;">
+              <strong>Comment :</strong> Le Service Worker vérifie d'abord si l'image est présente en cache locale. Si oui (Cache Hit), il la sert instantanément sans solliciter le réseau (0ms). Si non (Cache Miss), il la télécharge sur le réseau, la renvoie, et la garde en cache pour les visites ultérieures. Cela permet de fluidifier la navigation visuelle et de sauvegarder de la bande passante.
+            </p>
+          </div>
+
+          <div class="details-box">
+            <h4 style="color: var(--primary-dark); font-weight: 600;">🔄 Stale-While-Revalidate (API GET)</h4>
+            <p style="margin-top: 0.5rem; font-size: 0.9rem;">
+              <strong>Quand :</strong> Pour toutes les requêtes de données API en lecture (GET /api/*).
+            </p>
+            <p style="font-size: 0.9rem;">
+              <strong>Comment :</strong> Cette stratégie renvoie immédiatement la version mise en cache (stale) s'il y en a une, garantissant un affichage instantané de l'interface. En parallèle, elle envoie une requête discrète sur le réseau pour récupérer les données fraîches (revalidate) et met à jour le cache local. Ainsi, l'utilisateur a toujours un chargement immédiat et bénéficie des mises à jour lors des navigations suivantes.
+            </p>
+          </div>
+
+          <div class="details-box">
+            <h4 style="color: var(--primary-dark); font-weight: 600;">🌐 Network Only (Navigations HTML)</h4>
+            <p style="margin-top: 0.5rem; font-size: 0.9rem;">
+              <strong>Quand :</strong> Pour le chargement initial des pages HTML (routes principales).
+            </p>
+            <p style="font-size: 0.9rem;">
+              <strong>Comment :</strong> Le Service Worker force le passage exclusif par le réseau pour toujours servir la version du site la plus récente construite par Next.js. Si le réseau est déconnecté (hors-ligne), la requête réseau échoue et le gestionnaire d'erreur global (<code>setCatchHandler</code>) attrape l'échec pour servir la page de secours pré-mise en cache <code>/offline</code>.
+            </p>
+          </div>
+
+          <div class="details-box">
+            <h4 style="color: var(--primary-dark); font-weight: 600;">📡 Network Only + Background Sync (Envoi des Commandes)</h4>
+            <p style="margin-top: 0.5rem; font-size: 0.9rem;">
+              <strong>Quand :</strong> Pour les requêtes de création de commandes (POST /api/addCommande).
+            </p>
+            <p style="font-size: 0.9rem;">
+              <strong>Comment :</strong> Les soumissions de commandes ne doivent jamais être mises en cache (pour éviter les doublons). Elles passent par le réseau uniquement. En cas d'échec de connexion, Workbox utilise <code>BackgroundSyncPlugin</code> pour stocker la requête POST échouée dans la file d'attente IndexedDB locale. Le navigateur la rejouera automatiquement dès le retour du réseau, en arrière-plan.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: IndexedDB -->
+      <section id="indexeddb">
+        <div class="section-header">
+          <div class="section-title-group">
+            <div class="section-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"></path></svg>
+            </div>
+            <h2>Stockage IndexedDB (Dexie)</h2>
+          </div>
+          <span class="status-badge">Actif</span>
+        </div>
+        <p>
+          Pour le stockage volumineux et structuré qui ne convient pas aux caches HTTP standards, nous utilisons <strong>IndexedDB</strong> via la bibliothèque <strong>Dexie.js</strong>, ce qui permet des requêtes complexes et asynchrones en base locale.
+        </p>
+        <div class="files-card">
+          <div class="files-card-title">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            Fichiers clés :
+          </div>
+          <ul class="file-list">
+            <li class="file-item">frontend/src/services/db.ts (Définition de la base de données et des tables)</li>
+          </ul>
+        </div>
+        <p>La base <code>MenuiserieDigitalDB</code> déclare les tables suivantes :</p>
+        <div class="details-grid">
+          <div class="details-box">
+            <h4>Tables de données catalogue</h4>
+            <ul>
+              <li><strong>catalogProducts</strong> : Liste complète des produits avec leurs détails (id, nom, prix, vedette, categorie_id).</li>
+              <li><strong>catalogCategories</strong> : Catégories de produits (id, nom, slug, image).</li>
+              <li><strong>catalogMeta</strong> : Métadonnées de synchronisation (dernière mise à jour, nombre d'éléments).</li>
+            </ul>
+          </div>
+          <div class="details-box">
+            <h4>Tables de parcours utilisateur</h4>
+            <ul>
+              <li><strong>cart</strong> : L'état complet du panier d'achat de l'utilisateur (quantité, bois, finition, dimensions, prix).</li>
+              <li><strong>pendingOrders</strong> : Liste des commandes passées hors-ligne en attente d'envoi réseau.</li>
+              <li><strong>syncedOrderCache</strong> : Cache des 20 dernières commandes réussies pour le suivi.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Catalog Offline -->
+      <section id="catalog">
+        <div class="section-header">
+          <div class="section-title-group">
+            <div class="section-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+            </div>
+            <h2>Catalogue et Fiches Produits Hors-ligne</h2>
+          </div>
+          <span class="status-badge">Actif</span>
+        </div>
+        <p>
+          Pour garantir que l'utilisateur puisse voir les produits même sans réseau, le catalogue utilise un mécanisme de synchronisation en ligne et de repli (fallback) sur la base de données locale.
+        </p>
+        <div class="files-card">
+          <div class="files-card-title">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            Fichiers clés :
+          </div>
+          <ul class="file-list">
+            <li class="file-item">frontend/src/services/catalogSync.ts (Logique de synchronisation et SWR local)</li>
+            <li class="file-item">frontend/src/services/api.ts (Repli au niveau des requêtes API vers Dexie)</li>
+            <li class="file-item">frontend/src/app/catalog/page.tsx (Page catalogue)</li>
+            <li class="file-item">frontend/src/app/product/[id]/page.tsx (Détail produit)</li>
+          </ul>
+        </div>
+        <div class="details-grid">
+          <div class="details-box">
+            <h4>Pattern Stale-While-Revalidate (SWR)</h4>
+            <p>
+              Lors de l'affichage des pages catalogue, la fonction <code>loadProductsWithRevalidate()</code> extrait immédiatement les produits de la base locale IndexedDB pour un affichage instantané (0ms). En parallèle, si le réseau est disponible, elle effectue une requête silencieuse en tâche de fond pour mettre à jour la base IndexedDB et rafraîchir l'écran en cas de modification.
+            </p>
+          </div>
+          <div class="details-box">
+            <h4>Warming des images</h4>
+            <p>
+              Après chaque synchronisation réussie du catalogue, la fonction <code>warmProductImages()</code> précharge de manière invisible l'image principale de chaque produit. Le Service Worker intercepte ces chargements et stocke les images dans son cache persistant, garantissant que les photos s'affichent correctement en mode déconnecté.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Cart -->
+      <section id="cart">
+        <div class="section-header">
+          <div class="section-title-group">
+            <div class="section-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+            </div>
+            <h2>Panier d'Achat Hors-ligne</h2>
+          </div>
+          <span class="status-badge">Actif</span>
+        </div>
+        <p>
+          Contrairement à de nombreux sites qui stockent le panier dans un état mémoire ou sur le serveur (rendant le panier inutilisable hors connexion), le panier de la Menuiserie Digitale est entièrement déporté sur IndexedDB.
+        </p>
+        <div class="files-card">
+          <div class="files-card-title">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            Fichiers clés :
+          </div>
+          <ul class="file-list">
+            <li class="file-item">frontend/src/services/db.ts (Table <code>cart</code>)</li>
+            <li class="file-item">frontend/src/services/useCartSync.ts (Hook React <code>useCartSync</code> pour ajouter/modifier/supprimer)</li>
+          </ul>
+        </div>
+        <p>
+          Le hook React <code>useCartSync()</code> utilise l'utilitaire <code>useLiveQuery</code> de Dexie. Ainsi, toute action (ajouter un produit, modifier sa quantité, vider le panier) met directement à jour IndexedDB. L'interface Next.js réagit instantanément aux modifications de la base locale, de façon transparente pour l'utilisateur, en ligne comme hors-ligne.
+        </p>
+      </section>
+
+      <!-- Section: Orders & Sync -->
+      <section id="orders">
+        <div class="section-header">
+          <div class="section-title-group">
+            <div class="section-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+            </div>
+            <h2>File de Commandes &amp; Synchronisation en Arrière-plan</h2>
+          </div>
+          <span class="status-badge">Actif</span>
+        </div>
+        <p>
+          C'est la fonctionnalité clé de la PWA : la capacité de finaliser une commande sans réseau et de s'assurer de sa livraison automatique ultérieure.
+        </p>
+        <div class="files-card">
+          <div class="files-card-title">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            Fichiers clés :
+          </div>
+          <ul class="file-list">
+            <li class="file-item">frontend/src/services/useCartSync.ts (Fonction <code>submitOrder()</code> et <code>queueOfflineOrder()</code>)</li>
+            <li class="file-item">frontend/src/components/ConnectivityProvider.tsx (Écouteur d'événements réseau et coordination du push)</li>
+            <li class="file-item">frontend/src/sw.ts (Événement de synchronisation Background Sync standard du navigateur)</li>
+          </ul>
+        </div>
+        
+        <h4>Cycle de vie d'une commande passée hors-ligne</h4>
+        <p>
+          Lorsqu'un utilisateur valide sa commande à l'adresse <code>/checkout</code> alors qu'il est hors connexion :
+        </p>
+        <ol style="margin-left: 2rem; margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.95rem;">
+          <li>L'application tente de joindre le serveur. Face à l'échec réseau, elle capture l'erreur et enregistre la commande dans la table IndexedDB <code>pendingOrders</code>.</li>
+          <li>Un code de suivi local temporaire est attribué à la commande : <code>MD-PENDING-[id]</code> pour rassurer l'utilisateur.</li>
+          <li>Le Service Worker enregistre une tâche de synchronisation en arrière-plan via l'API <strong>SyncManager</strong> du navigateur sous le tag <code>"sync-orders"</code>.</li>
+          <li>Dès que l'appareil retrouve une connexion stable (même si l'onglet du site est fermé), le navigateur réveille le Service Worker et déclenche son événement <code>"sync"</code>.</li>
+          <li>Le Service Worker envoie alors un message <code>"TRIGGER_ORDER_SYNC"</code> aux clients fenêtres ouverts. Si aucun n'est actif, la synchronisation s'exécute silencieusement lors de la prochaine visite.</li>
+          <li>La commande est transmise à l'API NestJS (<code>/api/addCommande</code>). Une fois acceptée par la base de données PostgreSQL, le serveur renvoie un code de suivi définitif (ex: <code>MD-2026-X8F3L2</code>).</li>
+          <li>La commande locale passe de l'état <code>"pending"</code> à <code>"synced"</code>, est enregistrée dans le cache des commandes synchronisées, puis est nettoyée de la file d'attente locale.</li>
+        </ol>
+      </section>
+
+      <!-- Section: Fallback Page -->
+      <section id="fallback">
+        <div class="section-header">
+          <div class="section-title-group">
+            <div class="section-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            </div>
+            <h2>Page de Secours Hors-ligne (Offline Fallback)</h2>
+          </div>
+          <span class="status-badge">Actif</span>
+        </div>
+        <p>
+          Si l'utilisateur tente de naviguer vers une page qu'il n'a jamais visitée alors qu'il est hors connexion, l'application évite d'afficher l'erreur par défaut du navigateur en servant à la place une page de secours soignée.
+        </p>
+        <div class="files-card">
+          <div class="files-card-title">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            Fichiers clés :
+          </div>
+          <ul class="file-list">
+            <li class="file-item">frontend/src/sw.ts (Mise en cache de la page et méthode <code>setCatchHandler</code>)</li>
+            <li class="file-item">frontend/src/app/offline/page.tsx (Page Next.js mappée sur /offline)</li>
+            <li class="file-item">frontend/src/components/OfflineFallback.tsx (Composant d'affichage graphique de secours)</li>
+          </ul>
+        </div>
+        <p>
+          Au démarrage du Service Worker, la route <code>/offline</code> est pré-téléchargée et stockée dans un cache isolé nommé <code>"offline-fallbacks"</code>.
+        </p>
+        <p>
+          Lorsqu'une navigation échoue, la méthode <code>setCatchHandler()</code> intercepte la rupture réseau, extrait la page de secours du cache et la renvoie instantanément. Cette page offre une interface accueillante informant l'utilisateur, lui propose de recharger la page ou de naviguer sur la version hors-ligne du catalogue.
+        </p>
+      </section>
+
+      <!-- Section: UI Indicators -->
+      <section id="indicators">
+        <div class="section-header">
+          <div class="section-title-group">
+            <div class="section-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+            </div>
+            <h2>Indicateurs UX et Retours Visuels de Connexion</h2>
+          </div>
+          <span class="status-badge">Actif</span>
+        </div>
+        <p>
+          Une bonne PWA doit informer l'utilisateur de l'état de sa connexion de manière élégante et dynamique sans perturber son parcours.
+        </p>
+        <div class="files-card">
+          <div class="files-card-title">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            Fichiers clés :
+          </div>
+          <ul class="file-list">
+            <li class="file-item">frontend/src/components/ConnectivityProvider.tsx (Détecteur d'état et barres de statut)</li>
+            <li class="file-item">frontend/src/components/ConnectivityToast.tsx (Toasts de transition de connexion)</li>
+            <li class="file-item">frontend/src/components/CacheStatusBadge.tsx (Badge d'état du cache de l'application)</li>
+          </ul>
+        </div>
+        <div class="details-grid">
+          <div class="details-box">
+            <h4>Bannière supérieure offline</h4>
+            <p>
+              Dès que l'événement <code>window.offline</code> est détecté, le <code>ConnectivityProvider</code> insère une fine bannière orange en haut de l'écran indiquant : <strong>"Mode hors ligne"</strong>, accompagnée du décompte des commandes locales en attente.
+            </p>
+          </div>
+          <div class="details-box">
+            <h4>Toasts dynamiques de transition</h4>
+            <p>
+              Lors du retour de la connexion, un toast vert s'affiche indiquant la reconnexion et le statut de synchronisation des commandes envoyées au serveur NestJS, garantissant ainsi un retour visuel direct et rassurant.
+            </p>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <footer>
+    <p>&copy; 2026 Menuiserie Digitale. Conçu pour l'excellence et la résilience hors-ligne.</p>
+  </footer>
+
+  <!-- Scripts for simulation and UI interactivity -->
+  <script>
+    const networkToggle = document.getElementById('network-toggle');
+    const simStatusLabel = document.getElementById('sim-status-label');
+    const statusCards = document.querySelectorAll('.status-card');
+
+    networkToggle.addEventListener('change', function() {
+      if (this.checked) {
+        simStatusLabel.innerText = "En ligne";
+        simStatusLabel.className = "status-label online";
+        statusCards.forEach(card => card.style.opacity = '1');
+      } else {
+        simStatusLabel.innerText = "Hors-ligne";
+        simStatusLabel.className = "status-label offline";
+        statusCards.forEach((card, index) => {
+          if (index > 0) card.style.opacity = '0.5'; // Simulate offline impact on API cards
+        });
+      }
+    });
+
+    // Handle internal page nav highlights (basic scrolling listener)
+    const links = document.querySelectorAll('.nav-link');
+    links.forEach(link => {
+      link.addEventListener('click', function() {
+        links.forEach(l => l.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>
