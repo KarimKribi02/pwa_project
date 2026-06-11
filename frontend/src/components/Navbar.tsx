@@ -134,7 +134,7 @@ export default function Navbar() {
             onClick={() => setMobileOpen(false)}
           >
             <img
-              src="/logom.png"
+              src="/logom.webp"
               alt="Menuiserie Digitale"
               className="w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10 object-contain rounded-lg transition-transform duration-300 group-hover:rotate-6"
             />

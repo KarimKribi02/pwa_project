@@ -18,7 +18,7 @@ const OfflineFallback: React.FC<OfflineFallbackProps> = ({ reason = 'navigation'
 
   // Logo: on force un "pré-chargement" visuel côté UI.
   // Le SW doit aussi être capable de le servir offline (image en cache).
-  const logoSrc = useMemo(() => '/logom.png', []);
+  const logoSrc = useMemo(() => '/logom.webp', []);
 
   useEffect(() => {
     isCatalogCached().then(setHasCatalog);

@@ -50,7 +50,7 @@ export default function AdminLogin() {
         className="w-full max-w-md bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-primary/5"
       >
         <div className="bg-primary p-12 text-center relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')]" />
+          <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none bg-[url('/wood-pattern.webp')]" />
           <div className="relative z-10">
             <h1 className="font-serif text-3xl text-white mb-2 tracking-tight">Atelier Digital</h1>
             <p className="text-white/70 text-xs font-work uppercase tracking-widest font-bold">Administration Portal</p>

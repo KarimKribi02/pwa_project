@@ -17,8 +17,16 @@ export default function Home() {
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(true);
 
   useEffect(() => {
+    // Detect mobile viewport (Lighthouse runs mobile emulated tests)
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+
     async function fetchData() {
       try {
         const [productsResult, categoriesResult] = await Promise.all([
@@ -36,45 +44,50 @@ export default function Home() {
       }
     }
     fetchData();
+
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+    };
   }, []);
 
   return (
     <div className="flex flex-col">
+      {/* Preload the Hero image for LCP performance boost */}
+      <link rel="preload" href="/hero_workshop.webp" as="image" type="image/webp" />
+
       {/* Hero Section: The Cinematic Atelier */}
       <section className="relative h-[100vh] min-h-[700px] flex items-center justify-center overflow-hidden">
         {/* Background Video / Image */}
         <div className="absolute inset-0 z-0">
-          <video 
-            autoPlay 
-            loop 
-            muted 
-            playsInline
-            poster="/hero_workshop.png"
-            className="w-full h-full object-cover brightness-[0.6] transition-all duration-1000"
-          >
-            <source src="https://res.cloudinary.com/digfptrqs/video/upload/v1776807476/Menuiserie_-_Le_travail_d_un_passionn_du_bois_x9ofgd.mp4" type="video/mp4" />
-          </video>
+          {!isMobile ? (
+            <video 
+              autoPlay 
+              loop 
+              muted 
+              playsInline
+              poster="/hero_workshop.webp"
+              className="w-full h-full object-cover brightness-[0.6] transition-all duration-1000"
+            >
+              <source src="https://res.cloudinary.com/digfptrqs/video/upload/v1776807476/Menuiserie_-_Le_travail_d_un_passionn_du_bois_x9ofgd.mp4" type="video/mp4" />
+            </video>
+          ) : (
+            <img 
+              src="/hero_workshop.webp" 
+              alt="Atelier de Menuiserie" 
+              className="w-full h-full object-cover brightness-[0.6]"
+            />
+          )}
           {/* Subtle Overlay Gradient */}
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/60" />
         </div>
         
         <div className="relative z-10 px-8 md:px-0 w-full max-w-6xl text-center flex flex-col items-center">
-          <motion.h1 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, ease: "easeOut" }}
-            className="text-4xl md:text-7xl font-sans font-bold leading-[1.1] text-white mb-16 tracking-tight"
-          >
+          <h1 className="text-4xl md:text-7xl font-sans font-bold leading-[1.1] text-white mb-16 tracking-tight">
             Menuiserie Digitale, <span className="text-secondary italic">Excellence.</span><br />
             L'Art du Bois, <span className="text-secondary italic">Signature.</span>
-          </motion.h1>
+          </h1>
           
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="w-full max-w-4xl"
-          >
+          <div className="w-full max-w-4xl">
             {/* Search / Filter Container */}
             <div className="bg-white/95 backdrop-blur-md rounded-[2rem] shadow-2xl p-2 md:p-4 overflow-hidden">
               {/* Tabs */}
@@ -128,7 +141,7 @@ export default function Home() {
                 </div>
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
       </section>
 
@@ -146,7 +159,7 @@ export default function Home() {
                 {item.icon}
               </div>
               <div>
-                <h4 className="font-sans font-bold text-sm text-gray-900">{item.title}</h4>
+                <h3 className="font-sans font-bold text-sm text-gray-900">{item.title}</h3>
                 <p className="font-sans text-xs text-gray-500">{item.detail}</p>
               </div>
             </div>
@@ -181,9 +194,10 @@ export default function Home() {
                   <div className="w-32 h-32 md:w-44 md:h-44 rounded-full bg-white border border-gray-100 shadow-sm overflow-hidden mb-8 group-hover:shadow-xl group-hover:border-[#2D5A27]/30 transition-all p-3">
                     <div className="w-full h-full rounded-full overflow-hidden relative">
                       <img 
-                        src={cat.image || "/product_door.png"} 
+                        src={cat.image || "/product_door.webp"} 
                         alt={cat.nom} 
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                        loading="lazy"
                       />
                       <div className="absolute inset-0 bg-[#2D5A27]/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
@@ -223,7 +237,7 @@ export default function Home() {
               featuredProducts.map((product) => {
                 const mainImage = product.produits_images?.find((img: any) => img.principale)?.url_image 
                                  || product.produits_images?.[0]?.url_image 
-                                 || "/product_door.png";
+                                 || "/product_door_thumb.webp";
                 return (
                   <motion.div 
                     key={product.id} 
@@ -240,6 +254,7 @@ export default function Home() {
                         src={mainImage} 
                         alt={product.nom} 
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000 ease-out" 
+                        loading="lazy"
                       />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
                     </Link>
@@ -253,7 +268,7 @@ export default function Home() {
                           <span className="text-[9px] text-gray-400 uppercase font-bold tracking-widest">Prix d'Atelier</span>
                           <span className="text-[#2D5A27] font-bold text-xl">{product.prix} MAD</span>
                         </div>
-                        <button className="w-12 h-12 rounded-xl bg-[#2D5A27]/5 text-[#2D5A27] flex items-center justify-center hover:bg-[#2D5A27] hover:text-white transition-all shadow-sm hover:shadow-lg hover:shadow-[#2D5A27]/20">
+                        <button aria-label="Ajouter au panier" className="w-12 h-12 rounded-xl bg-[#2D5A27]/5 text-[#2D5A27] flex items-center justify-center hover:bg-[#2D5A27] hover:text-white transition-all shadow-sm hover:shadow-lg hover:shadow-[#2D5A27]/20">
                           <ShoppingCart size={20} />
                         </button>
                       </div>

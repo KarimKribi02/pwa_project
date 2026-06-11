@@ -7,16 +7,19 @@ const notoSerif = Noto_Serif({
   variable: "--font-serif",
   subsets: ["latin"],
   weight: ["400", "700"],
+  display: "swap",
 });
 
 const inter = Inter({
   variable: "--font-sans",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const workSans = Work_Sans({
   variable: "--font-work",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -24,8 +27,8 @@ export const metadata: Metadata = {
   description: "Artisan menuisier d'exception à Marrakech. L'excellence du bois sur mesure.",
   manifest: "/manifest.json",
   icons: {
-    icon: "/logom.png",
-    apple: "/logom.png",
+    icon: "/logom.webp",
+    apple: "/logom.webp",
   },
 };
 

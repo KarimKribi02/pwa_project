@@ -140,7 +140,29 @@ export async function loadProductsWithRevalidate(
   const cached = await getCatalogProducts();
   const hasCache = cached.length > 0;
 
-  if (hasCache && onUpdate) onUpdate(cached);
+  if (hasCache) {
+    if (onUpdate) onUpdate(cached);
+    // Fire revalidation asynchronously in background
+    if (typeof navigator !== 'undefined' && navigator.onLine) {
+      fetch(`${API_BASE_URL}/AllProduits`)
+        .then(async (res) => {
+          if (res.ok) {
+            const raw = await res.json();
+            const products = (raw as Record<string, unknown>[]).map(mapProduct);
+            await db.catalogProducts.bulkPut(products);
+            await db.catalogMeta.put({
+              key: 'catalog',
+              lastSyncAt: Date.now(),
+              itemCount: products.length,
+            });
+            warmProductImages(products);
+            if (onUpdate) onUpdate(products);
+          }
+        })
+        .catch((err) => console.warn('Product background revalidation failed:', err));
+    }
+    return { data: cached, fromCache: true, isEmpty: false };
+  }
 
   if (typeof navigator !== 'undefined' && navigator.onLine) {
     try {
@@ -163,7 +185,7 @@ export async function loadProductsWithRevalidate(
     }
   }
 
-  return { data: cached, fromCache: hasCache, isEmpty: !hasCache };
+  return { data: [], fromCache: false, isEmpty: true };
 }
 
 export async function loadCategoriesWithRevalidate(
@@ -172,7 +194,28 @@ export async function loadCategoriesWithRevalidate(
   const cached = await getCatalogCategories();
   const hasCache = cached.length > 0;
 
-  if (hasCache && onUpdate) onUpdate(cached);
+  if (hasCache) {
+    if (onUpdate) onUpdate(cached);
+    // Fire revalidation asynchronously in background
+    if (typeof navigator !== 'undefined' && navigator.onLine) {
+      fetch(`${API_BASE_URL}/AllCategories`)
+        .then(async (res) => {
+          if (res.ok) {
+            const raw = await res.json();
+            const categories = (raw as Record<string, unknown>[]).map(mapCategory);
+            await db.catalogCategories.bulkPut(categories);
+            await db.catalogMeta.put({
+              key: 'categories',
+              lastSyncAt: Date.now(),
+              itemCount: categories.length,
+            });
+            if (onUpdate) onUpdate(categories);
+          }
+        })
+        .catch((err) => console.warn('Category background revalidation failed:', err));
+    }
+    return { data: cached, fromCache: true, isEmpty: false };
+  }
 
   if (typeof navigator !== 'undefined' && navigator.onLine) {
     try {
@@ -203,7 +246,23 @@ export async function loadFeaturedWithRevalidate(
   const cached = await getCatalogFeaturedProducts();
   const hasCache = cached.length > 0;
 
-  if (hasCache && onUpdate) onUpdate(cached);
+  if (hasCache) {
+    if (onUpdate) onUpdate(cached);
+    // Fire revalidation asynchronously in background
+    if (typeof navigator !== 'undefined' && navigator.onLine) {
+      fetch(`${API_BASE_URL}/ProduitsVedettes`)
+        .then(async (res) => {
+          if (res.ok) {
+            const raw = await res.json();
+            const products = (raw as Record<string, unknown>[]).map(mapProduct);
+            await db.catalogProducts.bulkPut(products);
+            if (onUpdate) onUpdate(products);
+          }
+        })
+        .catch((err) => console.warn('Featured background revalidation failed:', err));
+    }
+    return { data: cached, fromCache: true, isEmpty: false };
+  }
 
   if (typeof navigator !== 'undefined' && navigator.onLine) {
     try {
@@ -228,7 +287,26 @@ export async function loadProductWithRevalidate(
   onUpdate?: (product: OfflineProduct) => void,
 ): Promise<{ product: OfflineProduct | null; fromCache: boolean; isEmpty: boolean }> {
   const cached = await getCatalogProduct(id);
-  if (cached && onUpdate) onUpdate(cached);
+  const hasCache = !!cached;
+
+  if (hasCache) {
+    if (onUpdate) onUpdate(cached);
+    // Fire revalidation asynchronously in background
+    if (typeof navigator !== 'undefined' && navigator.onLine) {
+      fetch(`${API_BASE_URL}/SingleProduit/${id}`)
+        .then(async (res) => {
+          if (res.ok) {
+            const raw = await res.json();
+            const product = mapProduct(raw as Record<string, unknown>);
+            await db.catalogProducts.put(product);
+            warmProductImages([product]);
+            if (onUpdate) onUpdate(product);
+          }
+        })
+        .catch((err) => console.warn('Product background revalidation failed:', err));
+    }
+    return { product: cached, fromCache: true, isEmpty: false };
+  }
 
   if (typeof navigator !== 'undefined' && navigator.onLine) {
     try {
@@ -246,5 +324,5 @@ export async function loadProductWithRevalidate(
     }
   }
 
-  return { product: cached, fromCache: !!cached, isEmpty: !cached };
+  return { product: null, fromCache: false, isEmpty: true };
 }

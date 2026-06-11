@@ -342,7 +342,7 @@ export default function ProductsPage() {
               filteredProducts.map((product) => {
                 const mainImage = product.produits_images?.find((img: any) => img.principale)?.url_image 
                                  || product.produits_images?.[0]?.url_image 
-                                 || "/product_door.png";
+                                 || "/product_door_thumb.webp";
                 return (
                   <tr key={product.id} className="hover:bg-surface-low/50 transition-colors">
                     <td className="px-8 py-4">

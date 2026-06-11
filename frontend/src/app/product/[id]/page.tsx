@@ -97,7 +97,7 @@ export default function ProductDetail() {
         wood: wood.name,
         finish: finish.name
       },
-      image: product.produits_images?.[0]?.url_image || "/product_door.png"
+      image: product.produits_images?.[0]?.url_image || "/product_door.webp"
     };
     
     await addToCart(orderData);
@@ -129,7 +129,7 @@ export default function ProductDetail() {
 
   const images = product.produits_images?.length > 0 
     ? product.produits_images.map((img: any) => img.url_image) 
-    : ["/product_door.png"];
+    : ["/product_door.webp"];
 
   return (
     <div className="min-h-screen bg-surface pt-32 pb-24 px-4 md:px-8">

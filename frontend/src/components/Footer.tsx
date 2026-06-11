@@ -17,7 +17,7 @@ export default function Footer() {
   return (
     <footer className="bg-primary text-white pt-24 pb-12 px-8 overflow-hidden relative">
       {/* Decorative Wood Pattern Overlay */}
-      <div className="absolute inset-0 opacity-5 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')]" />
+      <div className="absolute inset-0 opacity-5 pointer-events-none bg-[url('/wood-pattern.webp')]" />
       
       <div className="max-w-7xl mx-auto relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-16 mb-20 text-center lg:text-left">
@@ -33,13 +33,13 @@ export default function Footer() {
               L'excellence de la menuiserie marocaine au cœur de Marrakech. L'alliance parfaite entre le savoir-faire ancestral du Maâlem et la précision technologique.
             </p>
             <div className="flex gap-6">
-              <Link href="#" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-secondary transition-colors">
+              <Link href="#" aria-label="Instagram" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-secondary transition-colors">
                 <Camera size={20} />
               </Link>
-              <Link href="#" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-secondary transition-colors">
+              <Link href="#" aria-label="WhatsApp" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-secondary transition-colors">
                 <MessageCircle size={20} />
               </Link>
-              <Link href="#" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-secondary transition-colors">
+              <Link href="#" aria-label="Partager" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-secondary transition-colors">
                 <Share2 size={20} />
               </Link>
             </div>
@@ -47,7 +47,7 @@ export default function Footer() {
 
           {/* Column 2: Quick Links */}
           <div className="space-y-8">
-            <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-secondary">Navigation</h4>
+            <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-secondary">Navigation</h3>
             <nav className="flex flex-col gap-4 text-sm font-medium">
               <Link href="/" className="hover:text-secondary transition-colors">Accueil</Link>
               <Link href="/catalog" className="hover:text-secondary transition-colors">Atelier / Catalogue</Link>
@@ -59,7 +59,7 @@ export default function Footer() {
 
           {/* Column 3: Contact */}
           <div className="space-y-8">
-            <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-secondary">Coordoonées</h4>
+            <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-secondary">Coordoonées</h3>
             <div className="flex flex-col gap-6 text-sm">
               <div className="flex items-center gap-4 justify-center lg:justify-start">
                 <MapPin className="text-secondary shrink-0" size={20} />
@@ -78,7 +78,7 @@ export default function Footer() {
 
           {/* Column 4: Trust/Badges */}
           <div className="space-y-8">
-            <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-secondary">Engagement</h4>
+            <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-secondary">Engagement</h3>
             <div className="space-y-4">
               <div className="bg-white/5 p-4 rounded-xl flex items-center gap-4 border border-white/10 group hover:border-secondary transition-colors">
                 <ShieldCheck className="text-secondary" size={24} />

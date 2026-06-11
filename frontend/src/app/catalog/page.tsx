@@ -231,7 +231,7 @@ export default function CatalogPage() {
                   {filteredProducts.map((product) => {
                     const mainImage = product.produits_images?.find((img: any) => img.principale)?.url_image 
                                      || product.produits_images?.[0]?.url_image 
-                                     || "/product_door.png";
+                                     || "/product_door_thumb.webp";
                     return (
                       <motion.div 
                         layout 
@@ -251,6 +251,7 @@ export default function CatalogPage() {
                             src={mainImage} 
                             alt={product.nom} 
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" 
+                            loading="lazy"
                           />
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
                         </Link>
