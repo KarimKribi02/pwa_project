@@ -18,6 +18,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { loadProductWithRevalidate } from '@/services/catalogSync';
 import { useCartSync } from '@/services/useCartSync';
+import ProductImage from '@/components/ProductImage';
 
 const WOOD_TYPES = [
   { id: 'chene', name: 'Chêne Blond', factor: 1.2 },
@@ -150,15 +151,20 @@ export default function ProductDetail() {
               className="aspect-[4/5] rounded-[2rem] overflow-hidden bg-white shadow-2xl border border-primary/5"
             >
               <AnimatePresence mode="wait">
-                <motion.img 
+                <motion.div
                   key={activeImg}
-                  src={images[activeImg]} 
-                  initial={{ opacity: 0, scale: 1.1 }}
+                  initial={{ opacity: 0, scale: 1.05 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 1.05 }}
-                  transition={{ duration: 0.6 }}
-                  className="w-full h-full object-cover"
-                />
+                  exit={{ opacity: 0, scale: 1.02 }}
+                  transition={{ duration: 0.4 }}
+                  className="w-full h-full"
+                >
+                  <ProductImage 
+                    src={images[activeImg]} 
+                    alt={product.nom} 
+                    aspectRatio=""
+                  />
+                </motion.div>
               </AnimatePresence>
             </motion.div>
             
@@ -171,7 +177,11 @@ export default function ProductDetail() {
                     activeImg === i ? "border-secondary scale-95" : "border-transparent opacity-60 hover:opacity-100"
                   }`}
                 >
-                  <img src={img} className="w-full h-full object-cover" />
+                  <ProductImage 
+                    src={img} 
+                    alt={`${product.nom} thumbnail ${i}`} 
+                    aspectRatio="aspect-square"
+                  />
                 </button>
               ))}
             </div>

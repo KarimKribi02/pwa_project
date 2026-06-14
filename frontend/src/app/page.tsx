@@ -11,6 +11,7 @@ import {
   loadFeaturedWithRevalidate,
   loadCategoriesWithRevalidate,
 } from "@/services/catalogSync";
+import ProductImage from "@/components/ProductImage";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState("Portes");
@@ -193,11 +194,12 @@ export default function Home() {
                 >
                   <div className="w-32 h-32 md:w-44 md:h-44 rounded-full bg-white border border-gray-100 shadow-sm overflow-hidden mb-8 group-hover:shadow-xl group-hover:border-[#2D5A27]/30 transition-all p-3">
                     <div className="w-full h-full rounded-full overflow-hidden relative">
-                      <img 
+                      <ProductImage 
                         src={cat.image || "/product_door.webp"} 
                         alt={cat.nom} 
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
-                        loading="lazy"
+                        className="group-hover:scale-110 transition-transform duration-700" 
+                        aspectRatio=""
+                        roundedClass="rounded-full"
                       />
                       <div className="absolute inset-0 bg-[#2D5A27]/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
@@ -250,11 +252,12 @@ export default function Home() {
                           VEDETTE
                         </div>
                       )}
-                      <img 
+                      <ProductImage 
                         src={mainImage} 
                         alt={product.nom} 
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000 ease-out" 
-                        loading="lazy"
+                        className="group-hover:scale-110 transition-transform duration-1000 ease-out" 
+                        aspectRatio=""
+                        roundedClass="rounded-xl"
                       />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
                     </Link>

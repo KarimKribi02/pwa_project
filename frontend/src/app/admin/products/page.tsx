@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { getProducts, getCategories, addProduct, deleteProduct, updateProduct, addImage } from '@/services/api';
 import { useRef } from 'react';
+import ProductImage, { resolveImageUrl } from '@/components/ProductImage';
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -52,6 +53,17 @@ export default function ProductsPage() {
   // 3 images supplémentaires (non principales)
   const [editingExtraImages, setEditingExtraImages] = useState<File[]>([]);
   const [editingExtraImagesPreviews, setEditingExtraImagesPreviews] = useState<string[]>([]);
+  const [mainPreviewError, setMainPreviewError] = useState(false);
+  const [extraPreviewsErrors, setExtraPreviewsErrors] = useState<boolean[]>([false, false, false]);
+
+  useEffect(() => {
+    setMainPreviewError(false);
+  }, [editingProductImagePreview]);
+
+  useEffect(() => {
+    setExtraPreviewsErrors([false, false, false]);
+  }, [editingExtraImagesPreviews]);
+
   const handleEditingExtraImageChange = (idx: number, file: File | undefined) => {
     if (!file) return;
     const nextFiles = [...editingExtraImages];
@@ -348,7 +360,7 @@ export default function ProductsPage() {
                     <td className="px-8 py-4">
                       <div className="flex items-center gap-4">
                         <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden border border-primary/5">
-                          <img src={mainImage} alt={product.nom} className="w-full h-full object-cover" />
+                          <ProductImage src={mainImage} alt={product.nom} aspectRatio="" roundedClass="" />
                         </div>
                         <div>
                           <p className="text-primary font-bold text-sm leading-tight">{product.nom}</p>
@@ -682,9 +694,14 @@ export default function ProductsPage() {
                   onClick={() => editFileInputRef.current?.click()}
                   className="h-48 rounded-3xl border-2 border-dashed border-primary/20 bg-white flex flex-col items-center justify-center gap-2 text-primary/40 group cursor-pointer hover:border-primary/40 transition-all overflow-hidden relative"
                 >
-                  {editingProductImagePreview ? (
+                  {editingProductImagePreview && !mainPreviewError ? (
                     <>
-                      <img src={editingProductImagePreview} alt="Preview" className="w-full h-full object-cover" />
+                      <img 
+                        src={resolveImageUrl(editingProductImagePreview) || undefined} 
+                        alt="Preview" 
+                        className="w-full h-full object-cover" 
+                        onError={() => setMainPreviewError(true)}
+                      />
                       <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <span className="bg-white/90 text-primary px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-lg">Changer l'image</span>
                       </div>
@@ -708,6 +725,7 @@ export default function ProductsPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {[0,1,2].map((idx) => {
                     const preview = editingExtraImagesPreviews[idx];
+                    const hasError = extraPreviewsErrors[idx];
                     return (
                       <div
                         key={idx}
@@ -723,8 +741,17 @@ export default function ProductsPage() {
                               handleEditingExtraImageChange(idx, file);
                             }}
                           />
-                          {preview ? (
-                            <img src={preview} alt={`Extra image ${idx+1}`} className="w-full h-full object-cover" />
+                          {preview && !hasError ? (
+                            <img 
+                              src={resolveImageUrl(preview) || undefined} 
+                              alt={`Extra image ${idx+1}`} 
+                              className="w-full h-full object-cover" 
+                              onError={() => {
+                                const next = [...extraPreviewsErrors];
+                                next[idx] = true;
+                                setExtraPreviewsErrors(next);
+                              }}
+                            />
                           ) : (
                             <>
                               <ImageIcon size={26} className="group-hover:scale-110 transition-transform" />

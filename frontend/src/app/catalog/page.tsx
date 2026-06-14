@@ -6,6 +6,7 @@ import { Filter, X, ChevronRight, ShoppingBag, ChevronDown, Star, Search } from 
 import { motion, AnimatePresence } from "framer-motion";
 import { loadProductsWithRevalidate, loadCategoriesWithRevalidate } from "@/services/catalogSync";
 import { WifiOff } from "lucide-react";
+import ProductImage from "@/components/ProductImage";
 
 export default function CatalogPage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -18,8 +19,10 @@ export default function CatalogPage() {
   const [maxPrice, setMaxPrice] = useState(150000);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [sortBy, setSortBy] = useState("Nouveautés");
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     async function fetchData() {
       try {
         const [productsResult, categoriesResult] = await Promise.all([
@@ -149,7 +152,7 @@ export default function CatalogPage() {
               <div>
                 <h2 className="text-lg font-serif font-bold text-gray-900 mb-4 flex justify-between">
                   <span>Budget Max</span>
-                  <span className="text-[#A67B5B] text-base">{maxPrice.toLocaleString()} MAD</span>
+                  <span className="text-[#A67B5B] text-base">{mounted ? maxPrice.toLocaleString() : ""} MAD</span>
                 </h2>
                 <input 
                   type="range" 
@@ -247,11 +250,10 @@ export default function CatalogPage() {
                               VEDETTE
                             </div>
                           )}
-                          <img 
+                          <ProductImage 
                             src={mainImage} 
                             alt={product.nom} 
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" 
-                            loading="lazy"
+                            className="group-hover:scale-105 transition-transform duration-700 ease-out" 
                           />
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
                         </Link>
@@ -275,7 +277,7 @@ export default function CatalogPage() {
                           <div className="mt-auto pt-4 border-t border-gray-100 flex flex-col gap-4">
                             <div>
                               <span className="text-xs text-gray-500 block mb-0.5">À partir de</span>
-                              <span className="text-xl font-bold text-[#2D5A27]">{Number(product.prix).toLocaleString()} MAD</span>
+                              <span className="text-xl font-bold text-[#2D5A27]">{mounted ? Number(product.prix).toLocaleString() : ""} MAD</span>
                             </div>
                             
                             <Link 
@@ -381,7 +383,7 @@ export default function CatalogPage() {
                 <div>
                   <h3 className="text-base font-serif font-bold text-gray-900 mb-3 flex justify-between">
                     <span>Budget Max</span>
-                    <span className="text-[#A67B5B] text-sm">{maxPrice.toLocaleString()} MAD</span>
+                    <span className="text-[#A67B5B] text-sm">{mounted ? maxPrice.toLocaleString() : ""} MAD</span>
                   </h3>
                   <input 
                     type="range" 
